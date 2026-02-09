@@ -1,0 +1,44 @@
+{
+  "name": "Kirito NFT #6",
+  "description": "Privacy-enhanced NFT with yield generation capabilities and mystery box features",
+  "image": "./original.png",
+  "attributes": [
+    {
+      "trait_type": "Background",
+      "value": "Black"
+    },
+    {
+      "trait_type": "Bottom lid",
+      "value": "Middle"
+    },
+    {
+      "trait_type": "Eye color",
+      "value": "Yellow"
+    },
+    {
+      "trait_type": "Eyeball",
+      "value": "Red"
+    },
+    {
+      "trait_type": "Goo",
+      "value": "Green"
+    },
+    {
+      "trait_type": "Iris",
+      "value": "Medium"
+    },
+    {
+      "trait_type": "Shine",
+      "value": "Shapes"
+    },
+    {
+      "trait_type": "Top lid",
+      "value": "High"
+    }
+  ],
+  "yieldMultiplier": 5.04,
+  "rarityScore": 14.08,
+  "animation_url": "./gif_preview.gif",
+  "external_url": "https://kirito-nft.com/nft/6",
+  "background_color": "000000"
+}

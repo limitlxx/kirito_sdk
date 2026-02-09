@@ -1,0 +1,44 @@
+{
+  "name": "Kirito NFT #7",
+  "description": "Privacy-enhanced NFT with yield generation capabilities and mystery box features",
+  "image": "./original.png",
+  "attributes": [
+    {
+      "trait_type": "Background",
+      "value": "Black"
+    },
+    {
+      "trait_type": "Bottom lid",
+      "value": "High"
+    },
+    {
+      "trait_type": "Eye color",
+      "value": "Yellow"
+    },
+    {
+      "trait_type": "Eyeball",
+      "value": "White"
+    },
+    {
+      "trait_type": "Goo",
+      "value": "Green"
+    },
+    {
+      "trait_type": "Iris",
+      "value": "Small"
+    },
+    {
+      "trait_type": "Shine",
+      "value": "Shapes"
+    },
+    {
+      "trait_type": "Top lid",
+      "value": "High"
+    }
+  ],
+  "yieldMultiplier": 5,
+  "rarityScore": 13.75,
+  "animation_url": "./gif_preview.gif",
+  "external_url": "https://kirito-nft.com/nft/7",
+  "background_color": "000000"
+}

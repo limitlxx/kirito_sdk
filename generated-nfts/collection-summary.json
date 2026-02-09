@@ -1,0 +1,573 @@
+{
+  "collection": {
+    "name": "Kirito Eye NFT Collection",
+    "description": "Privacy-enhanced eye NFTs with yield generation capabilities",
+    "total_supply": 10,
+    "generated_at": "2026-01-31T23:24:06.195Z",
+    "generation_time_ms": 2409,
+    "collection_thumbnail": "collection-thumbnail.gif"
+  },
+  "statistics": {
+    "total_combinations": 324,
+    "generated_nfts": 10,
+    "success_rate": "100.0%",
+    "rarity_distribution": {
+      "10-19": 7,
+      "20-29": 3
+    },
+    "average_rarity_score": "16.00",
+    "average_yield_multiplier": "5.76"
+  },
+  "layers": [
+    {
+      "name": "Background",
+      "trait_count": 1,
+      "traits": [
+        {
+          "name": "Black",
+          "weight": 1,
+          "rarity_percentage": "100.0%"
+        }
+      ]
+    },
+    {
+      "name": "Bottom lid",
+      "trait_count": 3,
+      "traits": [
+        {
+          "name": "High",
+          "weight": 20,
+          "rarity_percentage": "20.0%"
+        },
+        {
+          "name": "Low",
+          "weight": 40,
+          "rarity_percentage": "40.0%"
+        },
+        {
+          "name": "Middle",
+          "weight": 40,
+          "rarity_percentage": "40.0%"
+        }
+      ]
+    },
+    {
+      "name": "Eye color",
+      "trait_count": 6,
+      "traits": [
+        {
+          "name": "Cyan",
+          "weight": 1,
+          "rarity_percentage": "6.7%"
+        },
+        {
+          "name": "Green",
+          "weight": 1,
+          "rarity_percentage": "6.7%"
+        },
+        {
+          "name": "Pink",
+          "weight": 1,
+          "rarity_percentage": "6.7%"
+        },
+        {
+          "name": "Purple",
+          "weight": 1,
+          "rarity_percentage": "6.7%"
+        },
+        {
+          "name": "Red",
+          "weight": 1,
+          "rarity_percentage": "6.7%"
+        },
+        {
+          "name": "Yellow",
+          "weight": 10,
+          "rarity_percentage": "66.7%"
+        }
+      ]
+    },
+    {
+      "name": "Eyeball",
+      "trait_count": 2,
+      "traits": [
+        {
+          "name": "Red",
+          "weight": 50,
+          "rarity_percentage": "50.0%"
+        },
+        {
+          "name": "White",
+          "weight": 50,
+          "rarity_percentage": "50.0%"
+        }
+      ]
+    },
+    {
+      "name": "Goo",
+      "trait_count": 1,
+      "traits": [
+        {
+          "name": "Green",
+          "weight": 1,
+          "rarity_percentage": "100.0%"
+        }
+      ]
+    },
+    {
+      "name": "Iris",
+      "trait_count": 3,
+      "traits": [
+        {
+          "name": "Large",
+          "weight": 20,
+          "rarity_percentage": "20.0%"
+        },
+        {
+          "name": "Medium",
+          "weight": 20,
+          "rarity_percentage": "20.0%"
+        },
+        {
+          "name": "Small",
+          "weight": 60,
+          "rarity_percentage": "60.0%"
+        }
+      ]
+    },
+    {
+      "name": "Shine",
+      "trait_count": 1,
+      "traits": [
+        {
+          "name": "Shapes",
+          "weight": 100,
+          "rarity_percentage": "100.0%"
+        }
+      ]
+    },
+    {
+      "name": "Top lid",
+      "trait_count": 3,
+      "traits": [
+        {
+          "name": "High",
+          "weight": 30,
+          "rarity_percentage": "30.0%"
+        },
+        {
+          "name": "Low",
+          "weight": 20,
+          "rarity_percentage": "20.0%"
+        },
+        {
+          "name": "Middle",
+          "weight": 50,
+          "rarity_percentage": "50.0%"
+        }
+      ]
+    }
+  ],
+  "nfts": [
+    {
+      "token_id": "1",
+      "dna": "a1b9915a09a51e16c1dc8cb3d1e0f6d2c51771571ab850624f25e389b05c8fa3",
+      "rarity_score": 14.58,
+      "yield_multiplier": 5.1,
+      "attributes": [
+        {
+          "trait_type": "Background",
+          "value": "Black"
+        },
+        {
+          "trait_type": "Bottom lid",
+          "value": "High"
+        },
+        {
+          "trait_type": "Eye color",
+          "value": "Yellow"
+        },
+        {
+          "trait_type": "Eyeball",
+          "value": "White"
+        },
+        {
+          "trait_type": "Goo",
+          "value": "Green"
+        },
+        {
+          "trait_type": "Iris",
+          "value": "Medium"
+        },
+        {
+          "trait_type": "Shine",
+          "value": "Shapes"
+        },
+        {
+          "trait_type": "Top lid",
+          "value": "Middle"
+        }
+      ]
+    },
+    {
+      "token_id": "2",
+      "dna": "e60cc52f37af9383f376dab85f19963edc7d8c6fd08bd90473ab86df335cd97f",
+      "rarity_score": 22.92,
+      "yield_multiplier": 4.98,
+      "attributes": [
+        {
+          "trait_type": "Background",
+          "value": "Black"
+        },
+        {
+          "trait_type": "Bottom lid",
+          "value": "Low"
+        },
+        {
+          "trait_type": "Eye color",
+          "value": "Yellow"
+        },
+        {
+          "trait_type": "Eyeball",
+          "value": "White"
+        },
+        {
+          "trait_type": "Goo",
+          "value": "Green"
+        },
+        {
+          "trait_type": "Iris",
+          "value": "Large"
+        },
+        {
+          "trait_type": "Shine",
+          "value": "Shapes"
+        },
+        {
+          "trait_type": "Top lid",
+          "value": "Middle"
+        }
+      ]
+    },
+    {
+      "token_id": "3",
+      "dna": "6a65df0a79396d261490e4eb4e06526cee8506b960de99863e564f7cc469630e",
+      "rarity_score": 14.58,
+      "yield_multiplier": 4.82,
+      "attributes": [
+        {
+          "trait_type": "Background",
+          "value": "Black"
+        },
+        {
+          "trait_type": "Bottom lid",
+          "value": "Low"
+        },
+        {
+          "trait_type": "Eye color",
+          "value": "Yellow"
+        },
+        {
+          "trait_type": "Eyeball",
+          "value": "Red"
+        },
+        {
+          "trait_type": "Goo",
+          "value": "Green"
+        },
+        {
+          "trait_type": "Iris",
+          "value": "Small"
+        },
+        {
+          "trait_type": "Shine",
+          "value": "Shapes"
+        },
+        {
+          "trait_type": "Top lid",
+          "value": "Middle"
+        }
+      ]
+    },
+    {
+      "token_id": "4",
+      "dna": "ceede8e55760c6dea4dbc2de419cf8f94a7cbdabc1f8537a94362dbbee503aae",
+      "rarity_score": 11.58,
+      "yield_multiplier": 4.82,
+      "attributes": [
+        {
+          "trait_type": "Background",
+          "value": "Black"
+        },
+        {
+          "trait_type": "Bottom lid",
+          "value": "Middle"
+        },
+        {
+          "trait_type": "Eye color",
+          "value": "Yellow"
+        },
+        {
+          "trait_type": "Eyeball",
+          "value": "Red"
+        },
+        {
+          "trait_type": "Goo",
+          "value": "Green"
+        },
+        {
+          "trait_type": "Iris",
+          "value": "Small"
+        },
+        {
+          "trait_type": "Shine",
+          "value": "Shapes"
+        },
+        {
+          "trait_type": "Top lid",
+          "value": "Middle"
+        }
+      ]
+    },
+    {
+      "token_id": "5",
+      "dna": "26b73a51cb01e12c813587233f0e882c0cd2ef42b56b3a5139b5e19c1a4676ca",
+      "rarity_score": 11.58,
+      "yield_multiplier": 4.82,
+      "attributes": [
+        {
+          "trait_type": "Background",
+          "value": "Black"
+        },
+        {
+          "trait_type": "Bottom lid",
+          "value": "Middle"
+        },
+        {
+          "trait_type": "Eye color",
+          "value": "Yellow"
+        },
+        {
+          "trait_type": "Eyeball",
+          "value": "White"
+        },
+        {
+          "trait_type": "Goo",
+          "value": "Green"
+        },
+        {
+          "trait_type": "Iris",
+          "value": "Small"
+        },
+        {
+          "trait_type": "Shine",
+          "value": "Shapes"
+        },
+        {
+          "trait_type": "Top lid",
+          "value": "Middle"
+        }
+      ]
+    },
+    {
+      "token_id": "6",
+      "dna": "b787969e13f638b569c03537e84cee98fe1834c917695a4fe05f3d95d661d503",
+      "rarity_score": 14.08,
+      "yield_multiplier": 5.04,
+      "attributes": [
+        {
+          "trait_type": "Background",
+          "value": "Black"
+        },
+        {
+          "trait_type": "Bottom lid",
+          "value": "Middle"
+        },
+        {
+          "trait_type": "Eye color",
+          "value": "Yellow"
+        },
+        {
+          "trait_type": "Eyeball",
+          "value": "Red"
+        },
+        {
+          "trait_type": "Goo",
+          "value": "Green"
+        },
+        {
+          "trait_type": "Iris",
+          "value": "Medium"
+        },
+        {
+          "trait_type": "Shine",
+          "value": "Shapes"
+        },
+        {
+          "trait_type": "Top lid",
+          "value": "High"
+        }
+      ]
+    },
+    {
+      "token_id": "7",
+      "dna": "661ecfc0e28b922d168d3348feff618a3085f883aa98642efcf32828fe1e5e08",
+      "rarity_score": 13.75,
+      "yield_multiplier": 5,
+      "attributes": [
+        {
+          "trait_type": "Background",
+          "value": "Black"
+        },
+        {
+          "trait_type": "Bottom lid",
+          "value": "High"
+        },
+        {
+          "trait_type": "Eye color",
+          "value": "Yellow"
+        },
+        {
+          "trait_type": "Eyeball",
+          "value": "White"
+        },
+        {
+          "trait_type": "Goo",
+          "value": "Green"
+        },
+        {
+          "trait_type": "Iris",
+          "value": "Small"
+        },
+        {
+          "trait_type": "Shine",
+          "value": "Shapes"
+        },
+        {
+          "trait_type": "Top lid",
+          "value": "High"
+        }
+      ]
+    },
+    {
+      "token_id": "8",
+      "dna": "fae2e44bdb17d4a42f7d6e458353222917ba64f953dd3cd288cc2c18d0b560bb",
+      "rarity_score": 22.83,
+      "yield_multiplier": 9.17,
+      "attributes": [
+        {
+          "trait_type": "Background",
+          "value": "Black"
+        },
+        {
+          "trait_type": "Bottom lid",
+          "value": "Middle"
+        },
+        {
+          "trait_type": "Eye color",
+          "value": "Pink"
+        },
+        {
+          "trait_type": "Eyeball",
+          "value": "White"
+        },
+        {
+          "trait_type": "Goo",
+          "value": "Green"
+        },
+        {
+          "trait_type": "Iris",
+          "value": "Medium"
+        },
+        {
+          "trait_type": "Shine",
+          "value": "Shapes"
+        },
+        {
+          "trait_type": "Top lid",
+          "value": "High"
+        }
+      ]
+    },
+    {
+      "token_id": "9",
+      "dna": "f972ed9aa82c4c849973165e460dde06bf4d7ee7c547e1fcf9e25a17b18443e8",
+      "rarity_score": 21.17,
+      "yield_multiplier": 8.87,
+      "attributes": [
+        {
+          "trait_type": "Background",
+          "value": "Black"
+        },
+        {
+          "trait_type": "Bottom lid",
+          "value": "Middle"
+        },
+        {
+          "trait_type": "Eye color",
+          "value": "Cyan"
+        },
+        {
+          "trait_type": "Eyeball",
+          "value": "Red"
+        },
+        {
+          "trait_type": "Goo",
+          "value": "Green"
+        },
+        {
+          "trait_type": "Iris",
+          "value": "Small"
+        },
+        {
+          "trait_type": "Shine",
+          "value": "Shapes"
+        },
+        {
+          "trait_type": "Top lid",
+          "value": "High"
+        }
+      ]
+    },
+    {
+      "token_id": "10",
+      "dna": "8354efc867bdc9ce9dbb0b776839156e0ee9dcebef99a90e18eb45cc887106fb",
+      "rarity_score": 12.92,
+      "yield_multiplier": 4.94,
+      "attributes": [
+        {
+          "trait_type": "Background",
+          "value": "Black"
+        },
+        {
+          "trait_type": "Bottom lid",
+          "value": "High"
+        },
+        {
+          "trait_type": "Eye color",
+          "value": "Yellow"
+        },
+        {
+          "trait_type": "Eyeball",
+          "value": "Red"
+        },
+        {
+          "trait_type": "Goo",
+          "value": "Green"
+        },
+        {
+          "trait_type": "Iris",
+          "value": "Small"
+        },
+        {
+          "trait_type": "Shine",
+          "value": "Shapes"
+        },
+        {
+          "trait_type": "Top lid",
+          "value": "Middle"
+        }
+      ]
+    }
+  ]
+}
