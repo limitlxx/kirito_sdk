@@ -177,7 +177,7 @@ The following areas require production implementation to replace mock/placeholde
     - **Property 6: Sealed-Bid Auction Integrity**
     - **Validates: Requirements 2.4**
 
-- [ ] 9. Checkpoint - Privacy and Yield Systems Complete
+- [x] 9. Checkpoint - Privacy and Yield Systems Complete
   - Ensure all tests pass, ask the user if questions arise.
 
 - [x] 10. Mystery Box Implementation
@@ -216,7 +216,7 @@ The following areas require production implementation to replace mock/placeholde
     - **Property 13: Anonymous Governance Integrity**
     - **Validates: Requirements 5.1, 5.3, 5.5**
 
-  - [ ] 11.3 Implement private signaling system
+  - [x] 11.3 Implement private signaling system
     - Create anonymous signaling for governance decisions
     - Implement vote aggregation and tallying
     - Add support for different proposal types
@@ -226,182 +226,195 @@ The following areas require production implementation to replace mock/placeholde
     - **Property 14: Private Signaling Anonymity**
     - **Validates: Requirements 5.2, 5.4**
 
-- [ ] 12. Bitcoin Bridge and Enhanced Minting
-  - [ ] 12.1 Implement LayerSwap bridge integration for BTC/WBTC
+- [x] 12. Bitcoin Bridge and Token Conversion
+  - [x] 12.1 Implement LayerSwap bridge integration for BTC/WBTC
     - Integrate LayerSwap SDK for cross-chain BTC transfers to Starknet
     - Add support for BTC to WBTC conversion during minting
+    - Implement **Starknet native tokens (ETH, STRK, USDC) to WBTC conversion** via LayerSwap
     - Implement bridge transaction monitoring and confirmation
     - _Requirements: 3.4, 3.5_
 
-  - [ ] 12.2 Implement Garden Finance SDK integration
+  - [x] 12.2 Implement Garden Finance SDK integration
     - Integrate Garden Finance for Bitcoin DeFi operations
     - Add support for BTC wrapping and unwrapping
-    - Implement atomic swap functionality for BTC yield
+    - Implement **atomic swap functionality**: Starknet tokens ↔ BTC/WBTC
+    - Add liquidity routing for optimal conversion rates
     - _Requirements: 3.4, 3.5_
 
-  - [ ] 12.3 Implement Xverse wallet bridge integration
+  - [x] 12.3 Implement Xverse wallet bridge integration
     - Integrate Xverse Starknet bridge for BTC transfers
     - Add wallet connection and transaction signing for BTC operations
+    - Implement **multi-token bridge support** (ETH, STRK, USDC → WBTC)
     - Implement bridge fee estimation and optimization
     - _Requirements: 6.5_
 
-  - [ ] 12.4 Create Cairo contracts for BTC yield management
+  - [x] 12.4 Create Cairo contracts for BTC yield management and token conversion
     - Implement BTC/WBTC yield tracking contract
-    - Add yield source registration and management
-    - Create yield claim and distribution logic for BTC yields
+    - Add **token conversion router contract** for Starknet tokens → WBTC
+    - Create yield source registration and management
+    - Implement yield claim and distribution logic for BTC yields
+    - Add conversion rate oracle integration
     - _Requirements: 3.1, 3.4_
 
-  - [ ] 12.5 Implement BTC/WBTC yield source selection at mint
+  - [x] 12.5 Implement BTC/WBTC yield source selection at mint
     - Add yield source selection to minting flow (BTC, WBTC, or mixed)
-    - Implement automatic BTC to WBTC conversion during mint
+    - Implement **bidirectional conversion**: BTC ↔ WBTC and Starknet tokens (ETH/STRK/USDC) ↔ WBTC
+    - Add automatic token conversion during mint based on user's wallet holdings
+    - Support minting with any token and converting to WBTC for BTC yield
     - Add yield source configuration and validation
-    - Store yield preferences in NFT metadata
+    - Store yield preferences and conversion history in NFT metadata
     - _Requirements: 2.1, 3.1, 3.4_
 
-  - [ ] 12.6 Write property test for BTC bridge integration
+  - [x] 12.6 Write property test for BTC bridge integration
     - **Property 20: BTC Bridge Round-Trip**
     - **Validates: Requirements 3.4, 3.5**
 
-- [ ] 13. Wallet Allocation and Multi-Token Support
-  - [ ] 13.1 Implement wallet allocation based on rarity and custom factors
+  - [x] 12.7 Implement token conversion aggregator for optimal rates
+    - Create conversion router that finds best rates across bridges
+    - Support conversions: ETH → WBTC, STRK → WBTC, USDC → WBTC, BTC → WBTC
+    - Integrate with DEX aggregators (Avnu, Fibrous) for Starknet token swaps
+    - Add slippage protection and conversion preview
+    - Implement multi-hop routing (e.g., STRK → ETH → WBTC)
+    - Cache conversion rates with automatic refresh
+    - _Requirements: 3.4, 3.5_
+
+  - [x] 12.8 Write property test for token conversion consistency
+    - **Property 23: Token Conversion Round-Trip Consistency**
+    - **Validates: Conversion rates and bridge integrity**
+
+- [x] 13. Wallet Allocation and Multi-Token Support
+  - [x] 13.1 Implement wallet allocation based on rarity and custom factors
     - Create allocation algorithm based on rarity scores
     - Add custom allocation factor support (stake weight, rarity weight, custom multipliers)
     - Implement proportional yield distribution to NFT wallets
     - Add allocation preview before minting
     - _Requirements: 3.1, 3.2_
 
-  - [ ] 13.2 Extend Cairo wallet contract for multi-token support
+  - [x] 13.2 Extend Cairo wallet contract for multi-token support
     - Update wallet contract to hold any ERC-20 token
     - Implement token balance tracking and queries for multiple assets
     - Add support for native ETH and STRK holdings
     - Create token registry for supported assets
     - _Requirements: 2.3_
 
-  - [ ] 13.3 Implement comprehensive wallet functions
+  - [x] 13.3 Implement comprehensive wallet functions
     - Add token transfer functionality from NFT wallets
     - Implement token swap integration with DEX aggregator
     - Add staking/unstaking from NFT wallets to DeFi protocols
     - Create batch transaction support for multiple operations
     - _Requirements: 2.3_
 
-  - [ ] 13.4 Create Cairo yield distributor contract
+  - [x] 13.4 Create Cairo yield distributor contract
     - Implement proportional yield distribution logic in Cairo
     - Add support for multiple yield sources and tokens
     - Create allocation tracking and history
     - Implement automatic yield deposit to NFT wallets
     - _Requirements: 3.1, 3.2_
 
-  - [ ] 13.5 Write property test for yield allocation
+  - [x] 13.5 Write property test for yield allocation
     - **Property 21: Yield Allocation Proportionality**
     - **Validates: Requirements 3.1, 3.2**
 
-- [ ] 14. Real DeFi Protocol Integration
-  - [ ] 14.1 Implement Vesu lending protocol integration
+- [x] 14. Real DeFi Protocol Integration
+  - [x] 14.1 Implement Vesu lending protocol integration
     - Integrate Vesu SDK for lending yield tracking
     - Add support for lending pool deposits and withdrawals from NFT wallets
     - Implement real-time yield calculation from lending rates
     - Replace mock implementation with actual Vesu API calls
     - _Requirements: 3.4, 3.5_
 
-  - [ ] 14.2 Implement Ekubo DEX integration
+  - [x] 14.2 Implement Ekubo DEX integration
     - Integrate Ekubo SDK for LP yield tracking
     - Add support for liquidity provision and removal from NFT wallets
     - Implement real-time yield calculation from trading fees
     - Replace mock implementation with actual Ekubo API calls
     - _Requirements: 3.4, 3.5_
 
-  - [ ] 14.3 Implement Atomiq exchange integration
+  - [x] 14.3 Implement Atomiq exchange integration
     - Integrate Atomiq SDK for trading yield tracking
     - Add support for market making and trading from NFT wallets
     - Implement real-time yield calculation from trading rewards
     - Replace mock implementation with actual Atomiq API calls
     - _Requirements: 3.4, 3.5_
 
-  - [ ] 14.4 Create unified DeFi yield aggregator
+  - [x] 14.4 Create unified DeFi yield aggregator
     - Build aggregator to combine yields from all DeFi sources
     - Implement weighted yield calculation across protocols
     - Add yield source health monitoring and failover
     - Create yield optimization recommendations
     - _Requirements: 3.4, 3.5_
 
-  - [ ] 14.5 Write property test for multi-protocol yield aggregation
+  - [x] 14.5 Write property test for multi-protocol yield aggregation
     - **Property 22: Multi-Protocol Yield Consistency**
     - **Validates: Requirements 3.4, 3.5**
 
-- [ ] 15. Complete Tongo Integration
-  - [ ] 15.1 Replace Tongo mock implementations with real SDK calls
+- [x] 15. Complete Tongo Integration
+  - [x] 15.1 Replace Tongo mock implementations with real SDK calls
     - Integrate actual Tongo SDK for shielded transactions
     - Implement real fund, withdraw, and transfer operations
     - Add proper error handling for Tongo operations
     - Test with Tongo testnet
     - _Requirements: 2.2, 7.4_
 
-  - [ ] 15.2 Implement Tongo balance queries and proofs
+  - [x] 15.2 Implement Tongo balance queries and proofs
     - Add real shielded balance queries using Tongo SDK
     - Implement proof generation for balance verification
     - Add encrypted balance display in UI
     - _Requirements: 2.2, 7.4_
 
-  - [ ] 15.3 Create Cairo contracts for Tongo integration
+  - [x] 15.3 Create Cairo contracts for Tongo integration
     - Implement Tongo pool interface contracts
     - Add shielded staking verification
     - Create yield distribution with privacy preservation
     - _Requirements: 2.2, 7.4_
 
-- [ ] 16. Garaga-Noir Mystery Box Integration
-  - [ ] 16.1 Complete Noir circuit compilation
+- [x] 16. Garaga-Noir Mystery Box Integration
+  - [x] 16.1 Complete Noir circuit compilation
     - Finalize mystery box reveal circuit in Noir
     - Compile circuits for both full and bluffing reveals
     - Generate verification keys for Garaga
     - Test circuit execution with sample inputs
     - _Requirements: 4.2, 4.5_
 
-  - [ ] 16.2 Integrate Garaga verifier with Cairo contracts
+  - [x] 16.2 Integrate Garaga verifier with Cairo contracts
     - Connect Garaga verifier to mystery box contract
     - Implement proof verification in Cairo using Garaga
     - Add verification key management
     - Test on-chain proof verification
     - _Requirements: 4.5_
 
-  - [ ] 16.3 Complete SDK integration for mystery box proofs
+  - [x] 16.3 Complete SDK integration for mystery box proofs
     - Replace mock proof generation with real Noir compilation
     - Implement proof submission to Garaga verifier
     - Add proof verification status tracking
     - Create user-friendly proof generation interface
     - _Requirements: 4.1, 4.2, 4.5_
 
-- [ ] 17. Data Encryption and Security
-  - [ ] 12.1 Implement comprehensive data encryption
+- [x] 17. Data Encryption and Security
+  - [x] 17.1 Implement comprehensive data encryption
     - Create encryption system for all sensitive data
     - Implement key management and rotation
     - Add secure storage and retrieval mechanisms
     - _Requirements: 7.2_
 
-- [ ] 17. Data Encryption and Security
-  - [ ] 17.1 Implement comprehensive data encryption
-    - Create encryption system for all sensitive data
-    - Implement key management and rotation
-    - Add secure storage and retrieval mechanisms
-    - _Requirements: 7.2_
-
-  - [ ] 17.2 Write property test for sensitive data encryption
+  - [x] 17.2 Write property test for sensitive data encryption
     - **Property 17: Sensitive Data Encryption**
     - **Validates: Requirements 7.2**
 
-- [ ] 18. SDK Integration and Packaging
-  - [ ] 18.1 Create unified TypeScript SDK interface
+- [x] 18. SDK Integration and Packaging
+  - [x] 18.1 Create unified TypeScript SDK interface
     - Combine all components into cohesive SDK
     - Implement high-level API for developers
     - Add comprehensive error handling and logging
     - _Requirements: 6.1, 6.3_
 
-  - [ ] 18.2 Implement wallet compatibility layer
+  - [x] 18.2 Implement wallet compatibility layer
     - Add support for Xverse, Argent X and Braavos wallets
     - Implement wallet detection and connection
     - Create unified wallet interface
     - _Requirements: 6.5_
 
-  - [ ] 18.3 Package and publish NPM module
+  - [x] 18.3 Package and publish NPM module
     - Configure build pipeline for NPM publishing
     - Create comprehensive documentation and examples
     - Set up automated testing and CI/CD
@@ -415,11 +428,15 @@ The following areas require production implementation to replace mock/placeholde
     - Show wallet allocation and multi-token holdings
     - _Requirements: 8.1, 8.2, 8.3, 8.4_
 
-  - [ ] 19.2 Implement minting UI with yield source selection
+  - [ ] 19.2 Implement minting UI with yield source selection and token conversion
     - Create minting interface with BTC/WBTC yield options
+    - Add **token selection UI**: Allow users to mint with ETH, STRK, USDC, BTC, or WBTC
+    - Show **real-time conversion rates** and estimated WBTC yield amounts
     - Add allocation factor configuration (rarity, stake, custom)
     - Show yield preview and allocation breakdown
-    - Implement wallet connection for BTC bridge
+    - Display conversion fees and bridge costs
+    - Implement wallet connection for BTC bridge and Starknet tokens
+    - Add "Convert to WBTC for yield" toggle with rate preview
     - _Requirements: 8.1, 8.2_
 
   - [ ] 19.3 Implement NFT wallet management UI

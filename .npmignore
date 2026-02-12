@@ -1,0 +1,68 @@
+# Source files
+src/
+tests/
+examples/
+
+# Build artifacts
+*.log
+*.tsbuildinfo
+
+# Development files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Documentation source
+docs/
+
+# Test files
+coverage/
+.nyc_output/
+jest.config.js
+*.test.ts
+*.spec.ts
+
+# Development dependencies
+node_modules/
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# Misc
+.DS_Store
+Thumbs.db
+*.md
+!README.md
+!LICENSE
+
+# Cairo development files
+contracts/src/
+contracts/tests/
+contracts/Scarb.toml
+contracts/Scarb.lock
+contracts/.snfoundry_cache/
+
+# Generated NFTs (examples)
+generated-nfts/
+traits/
+
+# Temporary files
+tmp/
+temp/
+*.tmp

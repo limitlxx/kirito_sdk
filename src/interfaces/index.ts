@@ -6,3 +6,4 @@ export * from './mystery-box';
 export * from './governance';
 export * from './auction';
 export * from './error-handler';
+export * from './bridge';

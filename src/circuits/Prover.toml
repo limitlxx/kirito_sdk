@@ -1,0 +1,33 @@
+# Test inputs for mystery box reveal circuit - Full Reveal
+box_id = "12345"
+token_id = "67890"
+current_timestamp = "1707739200"
+merkle_root = "11111"
+nullifier = "22222"
+reveal_type = "1"
+
+# Private inputs - traits array
+traits = [
+    { category = "1", trait_hash = "33333", value_hash = "44444", yield_multiplier = "150" },
+    { category = "2", trait_hash = "55555", value_hash = "66666", yield_multiplier = "200" },
+    { category = "3", trait_hash = "77777", value_hash = "88888", yield_multiplier = "100" },
+    { category = "0", trait_hash = "0", value_hash = "0", yield_multiplier = "0" },
+    { category = "0", trait_hash = "0", value_hash = "0", yield_multiplier = "0" },
+    { category = "0", trait_hash = "0", value_hash = "0", yield_multiplier = "0" },
+    { category = "0", trait_hash = "0", value_hash = "0", yield_multiplier = "0" },
+    { category = "0", trait_hash = "0", value_hash = "0", yield_multiplier = "0" },
+    { category = "0", trait_hash = "0", value_hash = "0", yield_multiplier = "0" },
+    { category = "0", trait_hash = "0", value_hash = "0", yield_multiplier = "0" }
+]
+
+trait_count = "3"
+encryption_key = "99999"
+
+# Reveal conditions struct
+reveal_conditions = { condition_type = "1", timestamp = "1707739100", required_action = "0", minimum_stake = "0", action_completed = false }
+
+# Merkle proof array
+merkle_proof = ["10001", "10002", "10003", "10004", "10005", "10006", "10007", "10008"]
+
+action_proof = "0"
+bluff_category = "0"

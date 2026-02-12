@@ -7,7 +7,9 @@ import { MysteryBoxManager, ZKCircuitManager } from '../interfaces';
 export declare class MysteryBoxManagerSDK implements MysteryBoxManager {
     private config;
     private zkCircuitManager;
+    private noirCircuit;
     private mysteryBoxes;
+    private hiddenDataStore;
     constructor(config: KiritoSDKConfig);
     /**
      * Create mystery box for NFT
@@ -41,6 +43,22 @@ export declare class MysteryBoxManagerSDK implements MysteryBoxManager {
      * Get ZK Circuit Manager instance
      */
     getZKCircuitManager(): ZKCircuitManager;
+    /**
+     * Generate reveal proof using Noir circuit
+     */
+    generateRevealProof(boxId: BoxId, encryptionKey: string, revealType?: 'full' | 'bluffing', bluffCategory?: string): Promise<ZKProof>;
+    /**
+     * Generate bluffing proof for trait category
+     */
+    generateBluffingProof(boxId: BoxId, traitCategory: string, encryptionKey: string): Promise<ZKProof>;
+    /**
+     * Verify bluffing proof
+     */
+    verifyBluffingProof(boxId: BoxId, proof: ZKProof, traitCategory: string): Promise<boolean>;
+    /**
+     * Get available trait categories for bluffing
+     */
+    getAvailableTraitCategories(boxId: BoxId): Promise<string[]>;
     private generateBoxId;
     private encryptHiddenData;
     private decryptHiddenData;
@@ -51,6 +69,10 @@ export declare class MysteryBoxManagerSDK implements MysteryBoxManager {
     private registerMysteryBoxOnChain;
     private updateConditionsOnChain;
     private recordRevealOnChain;
+    private getHiddenDataForProof;
+    private getTraitCategoryNumber;
+    private verifyTraitCategoryExists;
+    private determineTraitCategory;
 }
 /**
  * ZK Circuit Manager SDK Implementation
@@ -59,6 +81,7 @@ export declare class MysteryBoxManagerSDK implements MysteryBoxManager {
 export declare class ZKCircuitManagerSDK implements ZKCircuitManager {
     private config;
     private compiledCircuits;
+    private noirCircuit;
     constructor(config: KiritoSDKConfig);
     /**
      * Generate reveal proof

@@ -152,6 +152,14 @@ export interface RevealedTraits {
 }
 
 // Governance Types
+export enum ProposalType {
+  BINARY = 'binary',           // Yes/No proposals
+  MULTIPLE_CHOICE = 'multiple_choice',  // Multiple options
+  WEIGHTED = 'weighted',       // Weighted voting
+  RANKED_CHOICE = 'ranked_choice',  // Ranked choice voting
+  QUADRATIC = 'quadratic'      // Quadratic voting
+}
+
 export interface Proposal {
   id: ProposalId;
   title: string;
@@ -160,6 +168,12 @@ export interface Proposal {
   groupId: GroupId;
   deadline: Timestamp;
   votingPower: VotingPowerType;
+  proposalType: ProposalType;
+  metadata?: {
+    minParticipation?: number;
+    quorum?: number;
+    [key: string]: any;
+  };
 }
 
 export enum VotingPowerType {
@@ -173,6 +187,12 @@ export interface VoteResults {
   totalVotes: number;
   results: { [option: string]: number };
   isFinalized: boolean;
+  proposalType: ProposalType;
+  metadata?: {
+    participationRate?: number;
+    quorumMet?: boolean;
+    [key: string]: any;
+  };
 }
 
 // Yield Types
@@ -289,6 +309,7 @@ export interface KiritoSDKConfig {
     tongoEndpoint: string;
     semaphoreEndpoint: string;
   };
+  starknetAccount?: any; // Account from starknet.js
 }
 
 // Additional types for Governance
@@ -300,6 +321,44 @@ export interface Signal {
 export interface Identity {
   privateKey: Uint8Array;
   commitment: Commitment;
+}
+
+// Private Signaling Types
+export type SignalId = string;
+
+export enum SignalType {
+  YIELD_STRATEGY = 'yield_strategy',
+  REVEAL_TIMING = 'reveal_timing',
+  COLLECTION_DECISION = 'collection_decision',
+  PARAMETER_ADJUSTMENT = 'parameter_adjustment',
+  CUSTOM = 'custom'
+}
+
+export interface PrivateSignal {
+  type: SignalType;
+  scope: string;
+  data: any;
+  groupId: GroupId;
+  timestamp: Timestamp;
+}
+
+export interface SignalResults {
+  scope: string;
+  signalType: SignalType;
+  totalSignals: number;
+  aggregatedData: any;
+  timestamp: Timestamp;
+}
+
+export interface AggregatedSignals {
+  signalType: SignalType;
+  scope: string;
+  signals: PrivateSignal[];
+  aggregation: {
+    [key: string]: number | string | any;
+  };
+  participantCount: number;
+  timestamp: Timestamp;
 }
 
 // Additional types for Mystery Box

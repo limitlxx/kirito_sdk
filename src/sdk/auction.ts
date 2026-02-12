@@ -309,58 +309,120 @@ export class SealedBidAuctionSDK implements SealedBidAuction {
   }
 
   private async deployAuctionContract(auction: Auction): Promise<TransactionHash> {
-    // Mock implementation - in real implementation this would deploy to Starknet
-    const mockTxHash = `0x${Math.random().toString(16).substring(2, 66)}`;
-    
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    console.log(`Deploying auction contract for: ${auction.id}`);
-    return mockTxHash;
+    // Real contract deployment
+    try {
+      const { createStarknetClient } = await import('../utils/starknet-client');
+      const client = createStarknetClient(this.config);
+      
+      const txHash = await client.executeContractCall(
+        this.config.network.contracts.auctionFactory || '0x0',
+        'deploy_auction',
+        [
+          auction.id,
+          auction.config.startingPrice.toString(),
+          auction.config.reservePrice?.toString() || '0',
+          auction.config.commitmentPhaseEnd,
+          auction.config.revealPhaseEnd
+        ]
+      );
+      
+      console.log(`Auction contract deployed: ${auction.id}, tx: ${txHash}`);
+      return txHash;
+    } catch (error) {
+      throw new Error(`Failed to deploy auction contract: ${error}`);
+    }
   }
 
   private async submitCommitmentOnChain(auctionId: AuctionId, commitment: BidCommitment): Promise<TransactionHash> {
-    // Mock implementation - in real implementation this would submit to Starknet
-    const mockTxHash = `0x${Math.random().toString(16).substring(2, 66)}`;
-    
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    console.log(`Submitting commitment on-chain: ${commitment.bidId}`);
-    return mockTxHash;
+    // Real commitment submission
+    try {
+      const { createStarknetClient } = await import('../utils/starknet-client');
+      const client = createStarknetClient(this.config);
+      
+      const txHash = await client.executeContractCall(
+        this.config.network.contracts.auction || '0x0',
+        'submit_commitment',
+        [
+          auctionId,
+          commitment.bidId,
+          commitment.commitment,
+          commitment.bidder,
+          commitment.timestamp
+        ]
+      );
+      
+      console.log(`Commitment submitted on-chain: ${commitment.bidId}, tx: ${txHash}`);
+      return txHash;
+    } catch (error) {
+      throw new Error(`Failed to submit commitment on-chain: ${error}`);
+    }
   }
 
   private async revealBidOnChain(auctionId: AuctionId, bid: SealedBid): Promise<TransactionHash> {
-    // Mock implementation - in real implementation this would submit to Starknet
-    const mockTxHash = `0x${Math.random().toString(16).substring(2, 66)}`;
-    
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    console.log(`Revealing bid on-chain: ${bid.bidId}`);
-    return mockTxHash;
+    // Real bid reveal
+    try {
+      const { createStarknetClient } = await import('../utils/starknet-client');
+      const client = createStarknetClient(this.config);
+      
+      const txHash = await client.executeContractCall(
+        this.config.network.contracts.auction || '0x0',
+        'reveal_bid',
+        [
+          auctionId,
+          bid.bidId,
+          bid.amount.toString(),
+          Array.from(bid.nonce),
+          bid.bidder
+        ]
+      );
+      
+      console.log(`Bid revealed on-chain: ${bid.bidId}, tx: ${txHash}`);
+      return txHash;
+    } catch (error) {
+      throw new Error(`Failed to reveal bid on-chain: ${error}`);
+    }
   }
 
   private async finalizeAuctionOnChain(auctionId: AuctionId, winner: SealedBid): Promise<TransactionHash> {
-    // Mock implementation - in real implementation this would finalize on Starknet
-    const mockTxHash = `0x${Math.random().toString(16).substring(2, 66)}`;
-    
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 150));
-    
-    console.log(`Finalizing auction on-chain: ${auctionId}, winner: ${winner.bidder}`);
-    return mockTxHash;
+    // Real auction finalization
+    try {
+      const { createStarknetClient } = await import('../utils/starknet-client');
+      const client = createStarknetClient(this.config);
+      
+      const txHash = await client.executeContractCall(
+        this.config.network.contracts.auction || '0x0',
+        'finalize_auction',
+        [
+          auctionId,
+          winner.bidder,
+          winner.amount.toString()
+        ]
+      );
+      
+      console.log(`Auction finalized on-chain: ${auctionId}, winner: ${winner.bidder}, tx: ${txHash}`);
+      return txHash;
+    } catch (error) {
+      throw new Error(`Failed to finalize auction on-chain: ${error}`);
+    }
   }
 
   private async cancelAuctionOnChain(auctionId: AuctionId): Promise<TransactionHash> {
-    // Mock implementation - in real implementation this would cancel on Starknet
-    const mockTxHash = `0x${Math.random().toString(16).substring(2, 66)}`;
-    
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    console.log(`Cancelling auction on-chain: ${auctionId}`);
-    return mockTxHash;
+    // Real auction cancellation
+    try {
+      const { createStarknetClient } = await import('../utils/starknet-client');
+      const client = createStarknetClient(this.config);
+      
+      const txHash = await client.executeContractCall(
+        this.config.network.contracts.auction || '0x0',
+        'cancel_auction',
+        [auctionId]
+      );
+      
+      console.log(`Auction cancelled on-chain: ${auctionId}, tx: ${txHash}`);
+      return txHash;
+    } catch (error) {
+      throw new Error(`Failed to cancel auction on-chain: ${error}`);
+    }
   }
 }
 

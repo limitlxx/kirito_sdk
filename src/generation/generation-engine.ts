@@ -404,7 +404,7 @@ export class KiritoGenerationEngine implements GenerationEngine {
   /**
    * Generate encryption key from password
    */
-  static generateEncryptionKeyFromPassword(password: string, salt?: Uint8Array): EncryptionKey {
+  static async generateEncryptionKeyFromPassword(password: string, salt?: Uint8Array): Promise<EncryptionKey> {
     const manager = new HiddenTraitEncryption();
     return manager.generateKeyFromPassword(password, salt);
   }

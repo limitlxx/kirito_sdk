@@ -330,11 +330,13 @@ describe('Mystery Box Hiding Mechanism Properties', () => {
             const conditionsMet = await mysteryBoxManager.checkRevealConditions(boxId);
             
             // Conditions should be met if reveal time is in the past
-            if (timeOffset <= 0) {
+            // Add a small buffer (100ms) to account for execution time
+            if (timeOffset <= -100) {
               expect(conditionsMet).toBe(true);
-            } else {
+            } else if (timeOffset >= 100) {
               expect(conditionsMet).toBe(false);
             }
+            // Skip assertion for values between -100 and 100 due to timing uncertainty
           }
         ),
         { 

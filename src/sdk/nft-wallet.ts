@@ -349,45 +349,52 @@ export class NFTWalletSDK implements NFTWallet {
 
   private async getNonce(address: Address): Promise<bigint> {
     try {
-      const nonce = await this.callContractView(
-        address,
-        'get_nonce',
-        []
-      );
+      const { createStarknetClient } = await import('../utils/starknet-client');
+      const client = createStarknetClient(this.config);
+      
+      const nonce = await client.getNonce(address);
       return BigInt(nonce);
-    } catch {
+    } catch (error) {
+      console.error(`Failed to get nonce for ${address}: ${error}`);
       return BigInt(0);
     }
   }
 
   private async executeContractCall(contractAddress: Address, method: string, params: any[]): Promise<TransactionHash> {
-    // Mock implementation - in real implementation this would use Starknet.js
-    const mockTxHash = `0x${Math.random().toString(16).substring(2, 66)}`;
-    
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    console.log(`Contract call: ${contractAddress}.${method}(${params.join(', ')})`);
-    return mockTxHash;
+    // Real Starknet.js implementation
+    try {
+      const { createStarknetClient } = await import('../utils/starknet-client');
+      const client = createStarknetClient(this.config);
+      
+      const txHash = await client.executeContractCall(
+        contractAddress,
+        method,
+        params
+      );
+      
+      console.log(`Contract call executed: ${contractAddress}.${method}, tx: ${txHash}`);
+      return txHash;
+    } catch (error) {
+      throw new Error(`Failed to execute contract call ${method}: ${error}`);
+    }
   }
 
   private async callContractView(contractAddress: Address, method: string, params: any[]): Promise<any> {
-    // Mock implementation - in real implementation this would use Starknet.js
-    console.log(`Contract view call: ${contractAddress}.${method}(${params.join(', ')})`);
-    
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 50));
-    
-    // Return mock data based on method
-    switch (method) {
-      case 'get_wallet_address':
-        return `0x${Math.random().toString(16).substring(2, 42)}`;
-      case 'owner_of':
-        return `0x${Math.random().toString(16).substring(2, 42)}`;
-      case 'balance_of':
-        return Math.floor(Math.random() * 1000000).toString();
-      default:
-        return '0';
+    // Real Starknet.js implementation
+    try {
+      const { createStarknetClient } = await import('../utils/starknet-client');
+      const client = createStarknetClient(this.config);
+      
+      const result = await client.callContractView(
+        contractAddress,
+        method,
+        params
+      );
+      
+      console.log(`Contract view call: ${contractAddress}.${method}`);
+      return result;
+    } catch (error) {
+      throw new Error(`Failed to call contract view ${method}: ${error}`);
     }
   }
 }
@@ -551,31 +558,39 @@ export class AccountAbstractionProxySDK implements AccountAbstractionProxy {
   }
 
   private async executeContractCall(contractAddress: Address, method: string, params: any[]): Promise<TransactionHash> {
-    // Mock implementation - in real implementation this would use Starknet.js
-    const mockTxHash = `0x${Math.random().toString(16).substring(2, 66)}`;
-    
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    console.log(`Contract call: ${contractAddress}.${method}(${JSON.stringify(params)})`);
-    return mockTxHash;
+    // Real Starknet.js implementation
+    try {
+      const { createStarknetClient } = await import('../utils/starknet-client');
+      const client = createStarknetClient(this.config);
+      
+      const txHash = await client.executeContractCall(
+        contractAddress,
+        method,
+        params
+      );
+      
+      console.log(`Contract call executed: ${contractAddress}.${method}, tx: ${txHash}`);
+      return txHash;
+    } catch (error) {
+      throw new Error(`Failed to execute contract call ${method}: ${error}`);
+    }
   }
 
   private async callContractView(contractAddress: Address, method: string, params: any[]): Promise<any> {
-    // Mock implementation - in real implementation this would use Starknet.js
-    console.log(`Contract view call: ${contractAddress}.${method}(${JSON.stringify(params)})`);
-    
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 50));
-    
-    // Return mock data based on method
-    switch (method) {
-      case 'get_implementation':
-        return `0x${Math.random().toString(16).substring(2, 42)}`;
-      case 'get_class_hash':
-        return `0x${Math.random().toString(16).substring(2, 42)}`;
-      default:
-        return '0';
+    // Real Starknet.js implementation
+    try {
+      const { createStarknetClient } = await import('../utils/starknet-client');
+      const client = createStarknetClient(this.config);
+      
+      const result = await client.callContractView(
+        contractAddress,
+        method,
+        params
+      );
+      
+      return result;
+    } catch (error) {
+      throw new Error(`Failed to call contract view ${method}: ${error}`);
     }
   }
 }

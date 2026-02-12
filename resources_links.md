@@ -12,16 +12,29 @@
 
 ₿ Bitcoin & DeFi Tools
 *LayerSwap Starknet Docs: https://docs.layerswap.io/integration/UI/Widget/Starknet/Starknet 
-*Garden Docs Quickstart: https://docs.garden.finance/developers/sdk/nodejs/quickstart
+*Garden Docs Quickstart: https://docs.garden.finance/developers/sdk/nodejs/quickstart, https://docs.garden.finance/api-reference/quickstart
 *Vesu Developer Docs: https://docs.vesu.xyz/developers
 *Starknet Bitcoin DeFi: https://www.starknet.io/blog/bitcoin-defi-domain/
 *Xverse Starknet Bridge: https://www.xverse.app/blog/starknet-bridge
 *Xverse Starknet Wallet: https://www.xverse.app/starknet-wallet
 *Ekubo Docs: https://docs.ekubo.org/
+*Ekubo API: https://docs.ekubo.org/integration-guides/reference/ekubo-api, https://prod-api.ekubo.org/openapi.json
 
 *Noir circuit: https://noir-lang.org/docs/tutorials/noirjs_app
 https://noir-lang.org/docs/getting_started/quick_start
 
-At the point of minting and wallet creation, I need users to be able to choose if they want to add yield (connected to wbtc/btc yield, set amount to take from their wallet and converted), set allocation between wallets(based on rarity or any factor),ability to hold any token in their nft wallets and perform wallet functions, kindly reviw the specs/codebase and make sure it's aligned
+*atomiqlabs: https://www.npmjs.com/package/@atomiqlabs/sdk?activeTab=readme
+*Xverse Doc: https://docs.xverse.app/sats-connect, https://docs.xverse.app/api
+*Xverse endpoints: https://api.secretkeylabs.io
 
-it seems there are a lot of uncompleted code using mocks and not production implemented in the smart contract kindly note them and implement as due. look at he resources_links.md for ref links for real life implementations
+Review implementations for these looking at their docs 
+- Xverse 
+- Atomiq
+- Ekubo
+- Garden Docs
+
+*atomiqlabs: https://www.npmjs.com/package/@atomiqlabs/sdk?activeTab=readme
+*Xverse Doc: https://docs.xverse.app/sats-connect, https://docs.xverse.app/api
+*Xverse endpoints: https://api.secretkeylabs.io
+*Garden Docs Quickstart: https://docs.garden.finance/developers/sdk/nodejs/quickstart, https://docs.garden.finance/api-reference/quickstart
+*Ekubo API: https://docs.ekubo.org/integration-guides/reference/ekubo-api, https://prod-api.ekubo.org/openapi.json

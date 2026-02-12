@@ -1,4 +1,4 @@
-import { ProposalId, VoteId, GroupId, Proposal, VoteResults, Signal, SemaphoreProof, Commitment, Identity, KiritoSDKConfig } from '../types';
+import { ProposalId, VoteId, GroupId, Proposal, VoteResults, Signal, SemaphoreProof, Commitment, Identity, KiritoSDKConfig, SignalId, PrivateSignal, SignalType, SignalResults, AggregatedSignals } from '../types';
 import { AnonymousGovernance, SemaphoreManager } from '../interfaces';
 /**
  * Anonymous Governance SDK Implementation
@@ -10,6 +10,9 @@ export declare class AnonymousGovernanceSDK implements AnonymousGovernance {
     private proposals;
     private votes;
     private voteResults;
+    private signals;
+    private signalsByScope;
+    private signalsByType;
     constructor(config: KiritoSDKConfig);
     /**
      * Create new governance proposal
@@ -43,7 +46,42 @@ export declare class AnonymousGovernanceSDK implements AnonymousGovernance {
      * Get Semaphore Manager instance
      */
     getSemaphoreManager(): SemaphoreManager;
+    /**
+     * Send anonymous signal for governance decisions
+     */
+    sendSignal(signal: PrivateSignal, proof: SemaphoreProof): Promise<SignalId>;
+    /**
+     * Aggregate signals by type and scope
+     */
+    aggregateSignals(signalType: SignalType, scope: string): Promise<AggregatedSignals>;
+    /**
+     * Get signal results for a specific scope
+     */
+    getSignalResults(scope: string): Promise<SignalResults>;
+    /**
+     * Verify signal authenticity
+     */
+    verifySignal(signalId: SignalId, proof: SemaphoreProof): Promise<boolean>;
+    private generateSignalId;
+    private encodeSignalMessage;
+    private checkDuplicateSignal;
+    private performAggregation;
+    private aggregateYieldStrategySignals;
+    private aggregateRevealTimingSignals;
+    private aggregateCollectionDecisionSignals;
+    private aggregateParameterAdjustmentSignals;
+    private aggregateCustomSignals;
+    private aggregateGenericSignals;
+    private calculateConsensus;
+    private recordSignalOnChain;
     private generateProposalId;
+    private validateProposalType;
+    private finalizeResultsByType;
+    private finalizeBinaryResults;
+    private finalizeMultipleChoiceResults;
+    private finalizeWeightedResults;
+    private finalizeRankedChoiceResults;
+    private finalizeQuadraticResults;
     private generateVoteId;
     private parseVoteSignal;
     private checkDoubleVoting;
@@ -51,28 +89,30 @@ export declare class AnonymousGovernanceSDK implements AnonymousGovernance {
     private getStakeWeight;
     private getRarityWeight;
     private registerProposalOnChain;
+    private recordVoteOnChainWithProof;
     private recordVoteOnChain;
     private recordFinalResultsOnChain;
 }
 /**
  * Semaphore Manager SDK Implementation
- * Handles Semaphore protocol operations
+ * Handles Semaphore protocol operations with Cairo contract integration
  */
 export declare class SemaphoreManagerSDK implements SemaphoreManager {
     private config;
     private groups;
     private nullifiers;
+    private contractAddress?;
     constructor(config: KiritoSDKConfig);
     /**
      * Add member to Semaphore group
      */
     addMember(groupId: GroupId, commitment: Commitment): Promise<void>;
     /**
-     * Generate Semaphore proof
+     * Generate Semaphore proof with Cairo contract integration
      */
     generateProof(identity: Identity, signal: Signal, groupId: GroupId): Promise<SemaphoreProof>;
     /**
-     * Verify Semaphore proof
+     * Verify Semaphore proof using Cairo contract
      */
     verifyProof(proof: SemaphoreProof, signal: Signal, groupId: GroupId): Promise<boolean>;
     /**
@@ -95,11 +135,23 @@ export declare class SemaphoreManagerSDK implements SemaphoreManager {
      * Get all groups
      */
     getAllGroups(): GroupId[];
+    private createGroupOnChain;
+    private addMemberOnChain;
+    private removeMemberOnChain;
+    private verifyMembershipOnChain;
+    private getGroupSizeFromContract;
+    private getMerkleRootFromContract;
+    private verifyProofOnChain;
+    private markNullifierUsedOnChain;
+    private generateZKProof;
+    private verifyProofLocally;
+    private validateProofStructure;
     private calculateMerkleRoot;
+    private buildMerkleTree;
+    private poseidonHash;
     private generateNullifierHash;
     private generateExternalNullifier;
     private registerGroupOnChain;
     private registerMemberOnChain;
-    private removeMemberOnChain;
 }
 //# sourceMappingURL=governance.d.ts.map

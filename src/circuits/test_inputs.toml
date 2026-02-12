@@ -1,0 +1,93 @@
+# Test inputs for mystery box reveal circuit - Full Reveal
+box_id = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef"
+token_id = "0xfedcba0987654321fedcba0987654321fedcba0987654321fedcba0987654321"
+current_timestamp = "1707739200"
+merkle_root = "0x1111111111111111111111111111111111111111111111111111111111111111"
+nullifier = "0x2222222222222222222222222222222222222222222222222222222222222222"
+reveal_type = "1"
+
+# Private inputs
+[[traits]]
+category = "1"
+trait_hash = "0x3333333333333333333333333333333333333333333333333333333333333333"
+value_hash = "0x4444444444444444444444444444444444444444444444444444444444444444"
+yield_multiplier = "150"
+
+[[traits]]
+category = "2"
+trait_hash = "0x5555555555555555555555555555555555555555555555555555555555555555"
+value_hash = "0x6666666666666666666666666666666666666666666666666666666666666666"
+yield_multiplier = "200"
+
+[[traits]]
+category = "3"
+trait_hash = "0x7777777777777777777777777777777777777777777777777777777777777777"
+value_hash = "0x8888888888888888888888888888888888888888888888888888888888888888"
+yield_multiplier = "100"
+
+# Fill remaining traits with zeros
+[[traits]]
+category = "0"
+trait_hash = "0x0"
+value_hash = "0x0"
+yield_multiplier = "0"
+
+[[traits]]
+category = "0"
+trait_hash = "0x0"
+value_hash = "0x0"
+yield_multiplier = "0"
+
+[[traits]]
+category = "0"
+trait_hash = "0x0"
+value_hash = "0x0"
+yield_multiplier = "0"
+
+[[traits]]
+category = "0"
+trait_hash = "0x0"
+value_hash = "0x0"
+yield_multiplier = "0"
+
+[[traits]]
+category = "0"
+trait_hash = "0x0"
+value_hash = "0x0"
+yield_multiplier = "0"
+
+[[traits]]
+category = "0"
+trait_hash = "0x0"
+value_hash = "0x0"
+yield_multiplier = "0"
+
+[[traits]]
+category = "0"
+trait_hash = "0x0"
+value_hash = "0x0"
+yield_multiplier = "0"
+
+trait_count = "3"
+encryption_key = "0x9999999999999999999999999999999999999999999999999999999999999999"
+
+[reveal_conditions]
+condition_type = "1"
+timestamp = "1707739100"
+required_action = "0"
+minimum_stake = "0"
+action_completed = "false"
+
+merkle_proof = [
+    "0xaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "0xbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+    "0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+    "0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+    "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+    "0x0000000000000000000000000000000000000000000000000000000000000001",
+    "0x0000000000000000000000000000000000000000000000000000000000000002"
+]
+
+action_proof = "0x0000000000000000000000000000000000000000000000000000000000000000"
+bluff_category = "0"

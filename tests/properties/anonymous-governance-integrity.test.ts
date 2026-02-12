@@ -91,7 +91,8 @@ describe('Anonymous Governance Integrity Properties', () => {
             options,
             groupId,
             deadline: Date.now() + (hoursUntilDeadline * 60 * 60 * 1000),
-            votingPower: VotingPowerType.EQUAL
+            votingPower: VotingPowerType.EQUAL,
+            proposalType: 'binary' as any
           };
 
           const proposalId = await governanceSDK.createProposal(proposal, groupId);
@@ -180,7 +181,8 @@ describe('Anonymous Governance Integrity Properties', () => {
             options,
             groupId,
             deadline: Date.now() + (hoursUntilDeadline * 60 * 60 * 1000),
-            votingPower: VotingPowerType.EQUAL
+            votingPower: VotingPowerType.EQUAL,
+            proposalType: 'binary' as any
           };
 
           const proposalId = await governanceSDK.createProposal(proposal, groupId);
@@ -256,7 +258,8 @@ describe('Anonymous Governance Integrity Properties', () => {
             options,
             groupId,
             deadline: Date.now() + (hoursUntilDeadline * 60 * 60 * 1000),
-            votingPower: VotingPowerType.EQUAL
+            votingPower: VotingPowerType.EQUAL,
+            proposalType: 'multiple_choice' as any
           };
 
           const proposalId = await governanceSDK.createProposal(proposal, groupId);
@@ -399,7 +402,8 @@ describe('Anonymous Governance Integrity Properties', () => {
             options,
             groupId,
             deadline,
-            votingPower: VotingPowerType.EQUAL
+            votingPower: VotingPowerType.EQUAL,
+            proposalType: 'binary' as any
           };
 
           const proposalId = await governanceSDK.createProposal(proposal, groupId);

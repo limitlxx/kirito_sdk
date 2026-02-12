@@ -1,4 +1,37 @@
 "use strict";
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || (function () {
+    var ownKeys = function(o) {
+        ownKeys = Object.getOwnPropertyNames || function (o) {
+            var ar = [];
+            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
+            return ar;
+        };
+        return ownKeys(o);
+    };
+    return function (mod) {
+        if (mod && mod.__esModule) return mod;
+        var result = {};
+        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
+        __setModuleDefault(result, mod);
+        return result;
+    };
+})();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AccountAbstractionProxySDK = exports.NFTWalletSDK = void 0;
 /**
@@ -31,6 +64,32 @@ class NFTWalletSDK {
         }
     }
     /**
+     * Mint NFT through sealed-bid auction
+     */
+    async mintThroughAuction(auctionId, stakingAmount, metadata) {
+        try {
+            // This would typically be called after auction finalization
+            // For now, we'll simulate the minting process
+            // Generate unique token ID
+            const tokenId = this.generateTokenId();
+            // Prepare mint transaction data with auction reference
+            const mintData = this.encodeMintData(metadata.name, // Use metadata name as recipient placeholder
+            stakingAmount, { ...metadata, auctionId });
+            // Execute mint transaction through Starknet
+            const txHash = await this.executeContractCall(this.config.network.contracts.nftWallet, 'mint_from_auction', mintData);
+            // Deploy wallet contract for the new NFT
+            await this.accountProxy.deployWallet(tokenId);
+            console.log(`NFT minted through auction: ${tokenId}, auction: ${auctionId}, tx: ${txHash}`);
+            return {
+                tokenId,
+                transactionHash: txHash
+            };
+        }
+        catch (error) {
+            throw new Error(`Failed to mint NFT through auction: ${error}`);
+        }
+    }
+    /**
      * Transfer NFT between addresses
      */
     async transfer(from, to, tokenId) {
@@ -49,6 +108,28 @@ class NFTWalletSDK {
         }
         catch (error) {
             throw new Error(`Failed to transfer NFT: ${error}`);
+        }
+    }
+    /**
+     * Private transfer using stealth addresses
+     */
+    async privateTransfer(from, recipientPublicKey, tokenId) {
+        try {
+            // Import stealth address generator
+            const { StealthAddressGenerator } = await Promise.resolve().then(() => __importStar(require('../utils/tongo-integration')));
+            // Generate stealth address for recipient
+            const stealthData = await StealthAddressGenerator.generateStealthAddress(recipientPublicKey);
+            // Transfer NFT to stealth address instead of direct recipient
+            const txHash = await this.transfer(from, stealthData.stealthAddress, tokenId);
+            console.log(`Private NFT transfer successful: ${tokenId} to stealth address ${stealthData.stealthAddress}, tx: ${txHash}`);
+            return {
+                transactionHash: txHash,
+                stealthAddress: stealthData.stealthAddress,
+                ephemeralKey: stealthData.ephemeralPrivateKey
+            };
+        }
+        catch (error) {
+            throw new Error(`Failed to execute private transfer: ${error}`);
         }
     }
     /**
@@ -121,6 +202,46 @@ class NFTWalletSDK {
             return false;
         }
     }
+    /**
+     * Scan for NFTs received via stealth addresses
+     */
+    async scanStealthTransfers(privateKey, ephemeralKeys, fromBlock) {
+        try {
+            // Import stealth address generator
+            const { StealthAddressGenerator } = await Promise.resolve().then(() => __importStar(require('../utils/tongo-integration')));
+            // Scan for stealth addresses belonging to this private key
+            const stealthAddresses = await StealthAddressGenerator.scanStealthAddresses(privateKey, ephemeralKeys);
+            // For each stealth address, check for NFT ownership
+            const potentialNFTs = [];
+            for (const stealthAddress of stealthAddresses) {
+                // In a real implementation, this would query the blockchain for NFTs owned by stealth address
+                // For now, we'll simulate finding NFTs
+                const mockTokenId = `stealth_${Math.random().toString(16).substring(2, 10)}`;
+                potentialNFTs.push(mockTokenId);
+            }
+            console.log(`Scanned stealth transfers: found ${stealthAddresses.length} addresses, ${potentialNFTs.length} potential NFTs`);
+            return {
+                stealthAddresses,
+                potentialNFTs
+            };
+        }
+        catch (error) {
+            throw new Error(`Failed to scan stealth transfers: ${error}`);
+        }
+    }
+    /**
+     * Recover stealth address from ephemeral key
+     */
+    async recoverStealthAddress(ephemeralPublicKey, recipientPrivateKey) {
+        try {
+            // Import stealth address generator
+            const { StealthAddressGenerator } = await Promise.resolve().then(() => __importStar(require('../utils/tongo-integration')));
+            return await StealthAddressGenerator.recoverStealthAddress(ephemeralPublicKey, recipientPrivateKey);
+        }
+        catch (error) {
+            throw new Error(`Failed to recover stealth address: ${error}`);
+        }
+    }
     // Private helper methods
     generateTokenId() {
         // Generate unique token ID using timestamp and random bytes
@@ -149,36 +270,40 @@ class NFTWalletSDK {
     }
     async getNonce(address) {
         try {
-            const nonce = await this.callContractView(address, 'get_nonce', []);
+            const { createStarknetClient } = await Promise.resolve().then(() => __importStar(require('../utils/starknet-client')));
+            const client = createStarknetClient(this.config);
+            const nonce = await client.getNonce(address);
             return BigInt(nonce);
         }
-        catch {
+        catch (error) {
+            console.error(`Failed to get nonce for ${address}: ${error}`);
             return BigInt(0);
         }
     }
     async executeContractCall(contractAddress, method, params) {
-        // Mock implementation - in real implementation this would use Starknet.js
-        const mockTxHash = `0x${Math.random().toString(16).substring(2, 66)}`;
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 100));
-        console.log(`Contract call: ${contractAddress}.${method}(${params.join(', ')})`);
-        return mockTxHash;
+        // Real Starknet.js implementation
+        try {
+            const { createStarknetClient } = await Promise.resolve().then(() => __importStar(require('../utils/starknet-client')));
+            const client = createStarknetClient(this.config);
+            const txHash = await client.executeContractCall(contractAddress, method, params);
+            console.log(`Contract call executed: ${contractAddress}.${method}, tx: ${txHash}`);
+            return txHash;
+        }
+        catch (error) {
+            throw new Error(`Failed to execute contract call ${method}: ${error}`);
+        }
     }
     async callContractView(contractAddress, method, params) {
-        // Mock implementation - in real implementation this would use Starknet.js
-        console.log(`Contract view call: ${contractAddress}.${method}(${params.join(', ')})`);
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 50));
-        // Return mock data based on method
-        switch (method) {
-            case 'get_wallet_address':
-                return `0x${Math.random().toString(16).substring(2, 42)}`;
-            case 'owner_of':
-                return `0x${Math.random().toString(16).substring(2, 42)}`;
-            case 'balance_of':
-                return Math.floor(Math.random() * 1000000).toString();
-            default:
-                return '0';
+        // Real Starknet.js implementation
+        try {
+            const { createStarknetClient } = await Promise.resolve().then(() => __importStar(require('../utils/starknet-client')));
+            const client = createStarknetClient(this.config);
+            const result = await client.callContractView(contractAddress, method, params);
+            console.log(`Contract view call: ${contractAddress}.${method}`);
+            return result;
+        }
+        catch (error) {
+            throw new Error(`Failed to call contract view ${method}: ${error}`);
         }
     }
 }
@@ -310,26 +435,28 @@ class AccountAbstractionProxySDK {
             userOp.callGasLimit > 0;
     }
     async executeContractCall(contractAddress, method, params) {
-        // Mock implementation - in real implementation this would use Starknet.js
-        const mockTxHash = `0x${Math.random().toString(16).substring(2, 66)}`;
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 100));
-        console.log(`Contract call: ${contractAddress}.${method}(${JSON.stringify(params)})`);
-        return mockTxHash;
+        // Real Starknet.js implementation
+        try {
+            const { createStarknetClient } = await Promise.resolve().then(() => __importStar(require('../utils/starknet-client')));
+            const client = createStarknetClient(this.config);
+            const txHash = await client.executeContractCall(contractAddress, method, params);
+            console.log(`Contract call executed: ${contractAddress}.${method}, tx: ${txHash}`);
+            return txHash;
+        }
+        catch (error) {
+            throw new Error(`Failed to execute contract call ${method}: ${error}`);
+        }
     }
     async callContractView(contractAddress, method, params) {
-        // Mock implementation - in real implementation this would use Starknet.js
-        console.log(`Contract view call: ${contractAddress}.${method}(${JSON.stringify(params)})`);
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 50));
-        // Return mock data based on method
-        switch (method) {
-            case 'get_implementation':
-                return `0x${Math.random().toString(16).substring(2, 42)}`;
-            case 'get_class_hash':
-                return `0x${Math.random().toString(16).substring(2, 42)}`;
-            default:
-                return '0';
+        // Real Starknet.js implementation
+        try {
+            const { createStarknetClient } = await Promise.resolve().then(() => __importStar(require('../utils/starknet-client')));
+            const client = createStarknetClient(this.config);
+            const result = await client.callContractView(contractAddress, method, params);
+            return result;
+        }
+        catch (error) {
+            throw new Error(`Failed to call contract view ${method}: ${error}`);
         }
     }
 }

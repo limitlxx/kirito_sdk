@@ -595,7 +595,7 @@ export class HashLipsEngine {
         }
 
         // Add frame to GIF
-        encoder.addFrame(ctx);
+        encoder.addFrame(ctx as any);
       }
 
       encoder.finish();
@@ -1378,7 +1378,7 @@ export class HashLipsEngine {
           ctx.fillText(`#${i + 1}`, 15, 30);
           
           // Add frame to GIF
-          encoder.addFrame(ctx);
+          encoder.addFrame(ctx as any);
           
           this.log(`Added NFT #${i + 1} to collection GIF`);
           

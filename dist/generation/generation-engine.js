@@ -299,24 +299,16 @@ class KiritoGenerationEngine {
         return manager.generateKeyFromPassword(password, salt);
     }
     /**
-     * Create generation config from directory structure
+     * Create generation config from directory structure (HashLips-compatible)
      */
-    static createConfigFromDirectory(basePath, collectionSize, semaphoreGroupId) {
-        const layers = hashlips_engine_1.HashLipsEngine.loadLayersFromDirectory(basePath);
-        // Create default rarity weights (equal weight for all traits)
-        const rarityWeights = {};
-        for (const layer of layers) {
-            rarityWeights[layer.name] = {};
-            for (const trait of layer.traits) {
-                rarityWeights[layer.name][trait.name] = trait.weight;
+    static createConfigFromDirectory(basePath, collectionSize, semaphoreGroupId, options) {
+        return hashlips_engine_1.HashLipsEngine.createHashLipsConfig(basePath, collectionSize, {
+            ...options,
+            extraMetadata: {
+                semaphoreGroupId,
+                ...options
             }
-        }
-        return {
-            layers,
-            rarityWeights,
-            collectionSize,
-            semaphoreGroupId
-        };
+        });
     }
 }
 exports.KiritoGenerationEngine = KiritoGenerationEngine;

@@ -123,6 +123,11 @@ pub mod NFTWallet {
         self.wallet_salt_nonce.write(0);
         self.total_supply.write(0);
         
+        // Initialize UUPS proxy - set initial implementation
+        // In a real proxy pattern, this would be the class hash of the implementation contract
+        // For now, we use the wallet_class_hash as a placeholder
+        self.implementation.write(wallet_class_hash);
+        
         // Initialize security
         self.paused.write(false);
         self.reentrancy_guard.write(false);
@@ -295,16 +300,35 @@ pub mod NFTWallet {
             let wallet_address = self.wallet_addresses.read(token_id);
             assert(!wallet_address.is_zero(), 'Wallet not deployed');
             
-            // Create a call to the wallet's execute function
-            // In production, this would dispatch to the wallet contract
-            // For now, we'll create a proper call structure and return success indicator
-            let mut result_data = array![];
-            result_data.append(1); // Success indicator
-            result_data.append(value.low.into());
-            result_data.append(value.high.into());
-            result_data.append(to.into());
+            // Prepare calldata for wallet's execute function
+            let mut execute_calldata = array![];
+            execute_calldata.append(to.into());
+            execute_calldata.append(value.low.into());
+            execute_calldata.append(value.high.into());
             
-            result_data.span()
+            // Append the data span
+            let mut i = 0;
+            loop {
+                if i >= data.len() {
+                    break;
+                }
+                execute_calldata.append(*data.at(i));
+                i += 1;
+            };
+            
+            // Execute call to wallet contract using syscall
+            let result = starknet::syscalls::call_contract_syscall(
+                wallet_address,
+                selector!("execute_transaction"),
+                execute_calldata.span()
+            );
+            
+            match result {
+                Result::Ok(ret_data) => ret_data,
+                Result::Err(err) => {
+                    panic!("Wallet execution failed");
+                }
+            }
         }
 
         fn get_wallet_balance(
@@ -318,15 +342,47 @@ pub mod NFTWallet {
             let wallet_address = self.wallet_addresses.read(token_id);
             assert(!wallet_address.is_zero(), 'Wallet not deployed');
             
-            // In production, this would query the wallet contract for the actual balance
-            // For now, return a placeholder that indicates the wallet exists
-            // This could be enhanced to maintain a balance mapping or use dispatcher calls
+            // Query balance from the wallet contract or token contract
             if asset.is_zero() {
-                // ETH balance - could be queried from the wallet contract
-                0_u256
+                // ETH balance - query from wallet contract
+                let balance_result = starknet::syscalls::call_contract_syscall(
+                    wallet_address,
+                    selector!("get_balance"),
+                    array![asset.into()].span()
+                );
+                
+                match balance_result {
+                    Result::Ok(ret_data) => {
+                        if ret_data.len() >= 2 {
+                            let low = (*ret_data.at(0)).try_into().unwrap();
+                            let high = (*ret_data.at(1)).try_into().unwrap();
+                            u256 { low, high }
+                        } else {
+                            0_u256
+                        }
+                    },
+                    Result::Err(_) => 0_u256
+                }
             } else {
-                // ERC20 token balance - could be queried from the token contract
-                0_u256
+                // ERC20 token balance - query from token contract
+                let balance_result = starknet::syscalls::call_contract_syscall(
+                    asset,
+                    selector!("balance_of"),
+                    array![wallet_address.into()].span()
+                );
+                
+                match balance_result {
+                    Result::Ok(ret_data) => {
+                        if ret_data.len() >= 2 {
+                            let low = (*ret_data.at(0)).try_into().unwrap();
+                            let high = (*ret_data.at(1)).try_into().unwrap();
+                            u256 { low, high }
+                        } else {
+                            0_u256
+                        }
+                    },
+                    Result::Err(_) => 0_u256
+                }
             }
         }
     }
@@ -416,15 +472,46 @@ pub mod NFTWallet {
             // Check if `to` is a contract and call onERC721Received
             let to_code_size = self._get_code_size(to);
             if to_code_size > 0 {
-                // For production, would implement proper onERC721Received call
-                // This would involve calling the receiver contract to confirm it can handle NFTs
-                // The call would look like: receiver.onERC721Received(operator, from, token_id, data)
-                // For now, we assume the transfer is safe if the address is a contract
+                // Call onERC721Received on the receiver contract
+                let mut receiver_calldata = array![];
+                receiver_calldata.append(get_caller_address().into()); // operator
+                receiver_calldata.append(from.into()); // from
+                receiver_calldata.append(token_id.low.into()); // token_id low
+                receiver_calldata.append(token_id.high.into()); // token_id high
+                receiver_calldata.append(data.len().into()); // data length
                 
-                // In a full implementation, we would:
-                // 1. Call onERC721Received on the target contract
-                // 2. Verify it returns the correct magic value
-                // 3. Revert the transfer if the call fails or returns wrong value
+                // Append data
+                let mut i = 0;
+                loop {
+                    if i >= data.len() {
+                        break;
+                    }
+                    receiver_calldata.append(*data.at(i));
+                    i += 1;
+                };
+                
+                let result = starknet::syscalls::call_contract_syscall(
+                    to,
+                    selector!("on_erc721_received"),
+                    receiver_calldata.span()
+                );
+                
+                match result {
+                    Result::Ok(ret_data) => {
+                        // Verify the magic value is returned
+                        // ERC721_RECEIVER_MAGIC = selector!("on_erc721_received")
+                        if ret_data.len() > 0 {
+                            let magic_value = *ret_data.at(0);
+                            let expected_magic = selector!("on_erc721_received");
+                            assert(magic_value == expected_magic, 'Invalid receiver response');
+                        } else {
+                            panic!("Receiver returned no data");
+                        }
+                    },
+                    Result::Err(_) => {
+                        panic!("Receiver call failed");
+                    }
+                }
             }
         }
 
@@ -486,13 +573,26 @@ pub mod NFTWallet {
         }
 
         fn _get_code_size(self: @ContractState, address: ContractAddress) -> u256 {
-            // Simplified code size check - in production would use proper syscall
+            // Use proper syscall to check if address is a contract
             let addr_felt: felt252 = address.into();
             if addr_felt == 0 {
-                0
-            } else {
-                // Simple heuristic: assume non-zero addresses are contracts
-                1
+                return 0;
+            }
+            
+            // Try to get the class hash at the address
+            // If it succeeds and returns non-zero, it's a contract
+            let class_hash_result = starknet::syscalls::get_class_hash_at_syscall(address);
+            
+            match class_hash_result {
+                Result::Ok(class_hash) => {
+                    let class_hash_felt: felt252 = class_hash.into();
+                    if class_hash_felt == 0 {
+                        0_u256
+                    } else {
+                        1_u256 // Non-zero indicates contract exists
+                    }
+                },
+                Result::Err(_) => 0_u256
             }
         }
 

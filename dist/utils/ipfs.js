@@ -31,7 +31,7 @@ class IPFSClient {
         for (let attempt = 1; attempt <= this.config.retryAttempts; attempt++) {
             try {
                 const formData = new FormData();
-                const blob = new Blob([file], { type: 'application/octet-stream' });
+                const blob = new Blob([file.buffer], { type: 'application/octet-stream' });
                 formData.append('file', blob, filename);
                 const controller = new AbortController();
                 const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);

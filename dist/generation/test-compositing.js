@@ -25,9 +25,12 @@ async function testImageProcessing() {
             quality: 90
         };
         console.log('Composite options configured:', compositeOptions);
-        // Test standard variants
+        // Test standard variants (including GIF)
         const standardVariants = hashlips_engine_1.HashLipsEngine.createStandardVariants();
-        console.log('Standard variants available:', standardVariants.map(v => `${v.name} (${v.width}x${v.height} ${v.format})`));
+        console.log('Standard variants available:', standardVariants.map(v => `${v.name} (${v.width}x${v.height} ${v.format}${v.animated ? ' animated' : ''})`));
+        // Test HashLips variants
+        const hashLipsVariants = hashlips_engine_1.HashLipsEngine.createHashLipsVariants();
+        console.log('HashLips variants available:', hashLipsVariants.map(v => `${v.name} (${v.width}x${v.height} ${v.format}${v.animated ? ' animated' : ''})`));
         console.log('✅ Image processing test completed successfully!');
     }
     catch (error) {

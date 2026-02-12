@@ -7,7 +7,12 @@ import {
   Signal,
   SemaphoreProof,
   Commitment,
-  Identity
+  Identity,
+  SignalId,
+  PrivateSignal,
+  SignalType,
+  SignalResults,
+  AggregatedSignals
 } from '../types';
 
 /**
@@ -44,6 +49,26 @@ export interface AnonymousGovernance {
    * Check if proposal is active
    */
   isProposalActive(proposalId: ProposalId): Promise<boolean>;
+
+  /**
+   * Send anonymous signal for governance decisions
+   */
+  sendSignal(signal: PrivateSignal, proof: SemaphoreProof): Promise<SignalId>;
+
+  /**
+   * Aggregate signals by type and scope
+   */
+  aggregateSignals(signalType: SignalType, scope: string): Promise<AggregatedSignals>;
+
+  /**
+   * Get signal results for a specific scope
+   */
+  getSignalResults(scope: string): Promise<SignalResults>;
+
+  /**
+   * Verify signal authenticity
+   */
+  verifySignal(signalId: SignalId, proof: SemaphoreProof): Promise<boolean>;
 }
 
 /**

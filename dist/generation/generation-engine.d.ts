@@ -95,8 +95,13 @@ export declare class KiritoGenerationEngine implements GenerationEngine {
      */
     static generateEncryptionKeyFromPassword(password: string, salt?: Uint8Array): EncryptionKey;
     /**
-     * Create generation config from directory structure
+     * Create generation config from directory structure (HashLips-compatible)
      */
-    static createConfigFromDirectory(basePath: string, collectionSize: number, semaphoreGroupId?: string): GenerationConfig;
+    static createConfigFromDirectory(basePath: string, collectionSize: number, semaphoreGroupId?: string, options?: {
+        rarityDelimiter?: string;
+        debugLogs?: boolean;
+        namePrefix?: string;
+        description?: string;
+    }): GenerationConfig;
 }
 //# sourceMappingURL=generation-engine.d.ts.map

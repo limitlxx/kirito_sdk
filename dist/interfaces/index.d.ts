@@ -3,5 +3,7 @@ export * from './nft-wallet';
 export * from './shielded-pool';
 export * from './mystery-box';
 export * from './governance';
+export * from './auction';
 export * from './error-handler';
+export * from './bridge';
 //# sourceMappingURL=index.d.ts.map

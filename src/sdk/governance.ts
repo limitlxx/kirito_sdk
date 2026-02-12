@@ -11,7 +11,13 @@ import {
   KiritoSDKConfig,
   VotingPowerType,
   Timestamp,
-  Address
+  Address,
+  SignalId,
+  PrivateSignal,
+  SignalType,
+  SignalResults,
+  AggregatedSignals,
+  ProposalType
 } from '../types';
 
 import { AnonymousGovernance, SemaphoreManager } from '../interfaces';
@@ -26,6 +32,9 @@ export class AnonymousGovernanceSDK implements AnonymousGovernance {
   private proposals: Map<ProposalId, Proposal> = new Map();
   private votes: Map<VoteId, { proposalId: ProposalId; signal: Signal; proof: SemaphoreProof }> = new Map();
   private voteResults: Map<ProposalId, VoteResults> = new Map();
+  private signals: Map<SignalId, { signal: PrivateSignal; proof: SemaphoreProof }> = new Map();
+  private signalsByScope: Map<string, SignalId[]> = new Map();
+  private signalsByType: Map<SignalType, SignalId[]> = new Map();
 
   constructor(config: KiritoSDKConfig) {
     this.config = config;
@@ -42,6 +51,9 @@ export class AnonymousGovernanceSDK implements AnonymousGovernance {
         throw new Error('Invalid proposal: missing required fields');
       }
 
+      // Validate proposal type-specific requirements
+      this.validateProposalType(proposal);
+
       // Verify group exists
       const groupSize = await this.semaphoreManager.getGroupSize(groupId);
       if (groupSize === 0) {
@@ -51,22 +63,28 @@ export class AnonymousGovernanceSDK implements AnonymousGovernance {
       // Generate unique proposal ID
       const proposalId = this.generateProposalId();
       
-      // Set proposal ID and group
+      // Set proposal ID, group, and default type if not specified
       const fullProposal: Proposal = {
         ...proposal,
         id: proposalId,
-        groupId
+        groupId,
+        proposalType: proposal.proposalType || 'binary' as any
       };
 
       // Store proposal
       this.proposals.set(proposalId, fullProposal);
 
-      // Initialize vote results
+      // Initialize vote results based on proposal type
       const initialResults: VoteResults = {
         proposalId,
         totalVotes: 0,
         results: {},
-        isFinalized: false
+        isFinalized: false,
+        proposalType: fullProposal.proposalType,
+        metadata: {
+          participationRate: 0,
+          quorumMet: false
+        }
       };
       
       // Initialize results for each option
@@ -79,7 +97,7 @@ export class AnonymousGovernanceSDK implements AnonymousGovernance {
       // Register proposal on-chain
       const txHash = await this.registerProposalOnChain(fullProposal);
       
-      console.log(`Governance proposal created: ${proposalId}, tx: ${txHash}`);
+      console.log(`Governance proposal created: ${proposalId} (type: ${fullProposal.proposalType}), tx: ${txHash}`);
       return proposalId;
     } catch (error) {
       throw new Error(`Failed to create proposal: ${error}`);
@@ -175,14 +193,33 @@ export class AnonymousGovernanceSDK implements AnonymousGovernance {
       const currentTime = Date.now();
       const isExpired = currentTime > proposal.deadline;
 
+      // Calculate participation rate
+      const groupSize = await this.semaphoreManager.getGroupSize(proposal.groupId);
+      const participationRate = groupSize > 0 ? (results.totalVotes / groupSize) * 100 : 0;
+
+      // Check quorum if specified
+      const quorum = proposal.metadata?.quorum || 0;
+      const quorumMet = participationRate >= quorum;
+
+      // Update metadata
+      results.metadata = {
+        ...results.metadata,
+        participationRate,
+        quorumMet
+      };
+
       // Finalize results if deadline passed and not already finalized
       if (isExpired && !results.isFinalized) {
         results.isFinalized = true;
+        
+        // Apply proposal type-specific finalization
+        results = await this.finalizeResultsByType(results, proposal);
+        
         this.voteResults.set(proposalId, results);
         
         // Record final results on-chain
         await this.recordFinalResultsOnChain(proposalId, results);
-        console.log(`Proposal ${proposalId} results finalized`);
+        console.log(`Proposal ${proposalId} results finalized (type: ${proposal.proposalType})`);
       }
 
       return { ...results }; // Return copy to prevent external modification
@@ -243,12 +280,544 @@ export class AnonymousGovernanceSDK implements AnonymousGovernance {
     return this.semaphoreManager;
   }
 
+  /**
+   * Send anonymous signal for governance decisions
+   */
+  async sendSignal(signal: PrivateSignal, proof: SemaphoreProof): Promise<SignalId> {
+    try {
+      // Validate signal
+      if (!signal.type || !signal.scope || !signal.groupId) {
+        throw new Error('Invalid signal: missing required fields');
+      }
+
+      // Verify group exists
+      const groupSize = await this.semaphoreManager.getGroupSize(signal.groupId);
+      if (groupSize === 0) {
+        throw new Error(`Semaphore group does not exist: ${signal.groupId}`);
+      }
+
+      // Create Signal object for proof verification
+      const signalMessage: Signal = {
+        message: this.encodeSignalMessage(signal),
+        scope: signal.scope
+      };
+
+      // Verify Semaphore proof
+      const isValidProof = await this.semaphoreManager.verifyProof(proof, signalMessage, signal.groupId);
+      if (!isValidProof) {
+        throw new Error('Invalid Semaphore proof for signal');
+      }
+
+      // Check for duplicate signaling using nullifier
+      const hasSentSignal = await this.checkDuplicateSignal(proof.nullifierHash, signal.scope);
+      if (hasSentSignal) {
+        throw new Error('Duplicate signal detected for this scope');
+      }
+
+      // Generate signal ID
+      const signalId = this.generateSignalId();
+
+      // Store signal
+      this.signals.set(signalId, { signal, proof });
+
+      // Index by scope
+      const scopeSignals = this.signalsByScope.get(signal.scope) || [];
+      scopeSignals.push(signalId);
+      this.signalsByScope.set(signal.scope, scopeSignals);
+
+      // Index by type
+      const typeSignals = this.signalsByType.get(signal.type) || [];
+      typeSignals.push(signalId);
+      this.signalsByType.set(signal.type, typeSignals);
+
+      // Record signal on-chain
+      const txHash = await this.recordSignalOnChain(signalId, signal, proof);
+
+      console.log(`Anonymous signal sent: ${signalId} (type: ${signal.type}, scope: ${signal.scope}), tx: ${txHash}`);
+      return signalId;
+    } catch (error) {
+      throw new Error(`Failed to send signal: ${error}`);
+    }
+  }
+
+  /**
+   * Aggregate signals by type and scope
+   */
+  async aggregateSignals(signalType: SignalType, scope: string): Promise<AggregatedSignals> {
+    try {
+      // Get all signals for this type and scope
+      const typeSignals = this.signalsByType.get(signalType) || [];
+      const scopeSignals = this.signalsByScope.get(scope) || [];
+
+      // Find intersection (signals matching both type and scope)
+      const matchingSignalIds = typeSignals.filter(id => scopeSignals.includes(id));
+
+      // Retrieve signal data
+      const signals: PrivateSignal[] = [];
+      for (const signalId of matchingSignalIds) {
+        const signalData = this.signals.get(signalId);
+        if (signalData) {
+          signals.push(signalData.signal);
+        }
+      }
+
+      // Aggregate based on signal type
+      const aggregation = await this.performAggregation(signals, signalType);
+
+      // Count unique participants (using nullifier hashes)
+      const uniqueNullifiers = new Set<string>();
+      for (const signalId of matchingSignalIds) {
+        const signalData = this.signals.get(signalId);
+        if (signalData) {
+          uniqueNullifiers.add(signalData.proof.nullifierHash);
+        }
+      }
+
+      const result: AggregatedSignals = {
+        signalType,
+        scope,
+        signals,
+        aggregation,
+        participantCount: uniqueNullifiers.size,
+        timestamp: Date.now()
+      };
+
+      console.log(`Aggregated ${signals.length} signals for type ${signalType}, scope ${scope}`);
+      return result;
+    } catch (error) {
+      throw new Error(`Failed to aggregate signals: ${error}`);
+    }
+  }
+
+  /**
+   * Get signal results for a specific scope
+   */
+  async getSignalResults(scope: string): Promise<SignalResults> {
+    try {
+      const scopeSignals = this.signalsByScope.get(scope) || [];
+
+      if (scopeSignals.length === 0) {
+        throw new Error(`No signals found for scope: ${scope}`);
+      }
+
+      // Get first signal to determine type
+      const firstSignalData = this.signals.get(scopeSignals[0]);
+      if (!firstSignalData) {
+        throw new Error('Signal data not found');
+      }
+
+      const signalType = firstSignalData.signal.type;
+
+      // Aggregate all signals for this scope
+      const aggregated = await this.aggregateSignals(signalType, scope);
+
+      const results: SignalResults = {
+        scope,
+        signalType,
+        totalSignals: scopeSignals.length,
+        aggregatedData: aggregated.aggregation,
+        timestamp: Date.now()
+      };
+
+      return results;
+    } catch (error) {
+      throw new Error(`Failed to get signal results: ${error}`);
+    }
+  }
+
+  /**
+   * Verify signal authenticity
+   */
+  async verifySignal(signalId: SignalId, proof: SemaphoreProof): Promise<boolean> {
+    try {
+      const signalData = this.signals.get(signalId);
+      if (!signalData) {
+        console.log(`Signal not found: ${signalId}`);
+        return false;
+      }
+
+      // Verify proof matches stored proof
+      if (signalData.proof.nullifierHash !== proof.nullifierHash) {
+        console.log('Proof nullifier mismatch');
+        return false;
+      }
+
+      // Create Signal object for verification
+      const signalMessage: Signal = {
+        message: this.encodeSignalMessage(signalData.signal),
+        scope: signalData.signal.scope
+      };
+
+      // Verify proof with Semaphore manager
+      const isValid = await this.semaphoreManager.verifyProof(
+        proof,
+        signalMessage,
+        signalData.signal.groupId
+      );
+
+      console.log(`Signal ${signalId} verification: ${isValid}`);
+      return isValid;
+    } catch (error) {
+      console.error(`Failed to verify signal: ${error}`);
+      return false;
+    }
+  }
+
+  // Private helper methods for signaling
+
+  private generateSignalId(): SignalId {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000000);
+    return `signal_${timestamp}_${random}`;
+  }
+
+  private encodeSignalMessage(signal: PrivateSignal): string {
+    // Encode signal data into a message string
+    return JSON.stringify({
+      type: signal.type,
+      scope: signal.scope,
+      data: signal.data,
+      timestamp: signal.timestamp
+    });
+  }
+
+  private async checkDuplicateSignal(nullifierHash: string, scope: string): Promise<boolean> {
+    // Check if this nullifier has already been used for this scope
+    const scopeSignals = this.signalsByScope.get(scope) || [];
+    
+    for (const signalId of scopeSignals) {
+      const signalData = this.signals.get(signalId);
+      if (signalData && signalData.proof.nullifierHash === nullifierHash) {
+        return true;
+      }
+    }
+    
+    return false;
+  }
+
+  private async performAggregation(signals: PrivateSignal[], signalType: SignalType): Promise<any> {
+    // Perform type-specific aggregation
+    switch (signalType) {
+      case SignalType.YIELD_STRATEGY:
+        return this.aggregateYieldStrategySignals(signals);
+      
+      case SignalType.REVEAL_TIMING:
+        return this.aggregateRevealTimingSignals(signals);
+      
+      case SignalType.COLLECTION_DECISION:
+        return this.aggregateCollectionDecisionSignals(signals);
+      
+      case SignalType.PARAMETER_ADJUSTMENT:
+        return this.aggregateParameterAdjustmentSignals(signals);
+      
+      case SignalType.CUSTOM:
+        return this.aggregateCustomSignals(signals);
+      
+      default:
+        return this.aggregateGenericSignals(signals);
+    }
+  }
+
+  private aggregateYieldStrategySignals(signals: PrivateSignal[]): any {
+    // Aggregate yield strategy preferences
+    const strategies: { [strategy: string]: number } = {};
+    
+    for (const signal of signals) {
+      const strategy = signal.data.strategy || 'unknown';
+      strategies[strategy] = (strategies[strategy] || 0) + 1;
+    }
+
+    // Calculate percentages
+    const total = signals.length;
+    const percentages: { [strategy: string]: number } = {};
+    for (const [strategy, count] of Object.entries(strategies)) {
+      percentages[strategy] = (count / total) * 100;
+    }
+
+    return {
+      strategies,
+      percentages,
+      mostPreferred: Object.keys(strategies).reduce((a, b) => 
+        strategies[a] > strategies[b] ? a : b
+      )
+    };
+  }
+
+  private aggregateRevealTimingSignals(signals: PrivateSignal[]): any {
+    // Aggregate reveal timing preferences
+    const timings: number[] = [];
+    
+    for (const signal of signals) {
+      if (signal.data.preferredTimestamp) {
+        timings.push(signal.data.preferredTimestamp);
+      }
+    }
+
+    if (timings.length === 0) {
+      return { averageTimestamp: null, medianTimestamp: null };
+    }
+
+    // Calculate average and median
+    const sum = timings.reduce((a, b) => a + b, 0);
+    const average = sum / timings.length;
+    
+    const sorted = timings.sort((a, b) => a - b);
+    const median = sorted[Math.floor(sorted.length / 2)];
+
+    return {
+      averageTimestamp: Math.floor(average),
+      medianTimestamp: median,
+      earliestPreferred: Math.min(...timings),
+      latestPreferred: Math.max(...timings),
+      totalResponses: timings.length
+    };
+  }
+
+  private aggregateCollectionDecisionSignals(signals: PrivateSignal[]): any {
+    // Aggregate collection-wide decisions
+    const decisions: { [decision: string]: number } = {};
+    
+    for (const signal of signals) {
+      const decision = signal.data.decision || 'abstain';
+      decisions[decision] = (decisions[decision] || 0) + 1;
+    }
+
+    // Calculate support percentages
+    const total = signals.length;
+    const support: { [decision: string]: number } = {};
+    for (const [decision, count] of Object.entries(decisions)) {
+      support[decision] = (count / total) * 100;
+    }
+
+    return {
+      decisions,
+      support,
+      consensus: this.calculateConsensus(support),
+      totalParticipants: total
+    };
+  }
+
+  private aggregateParameterAdjustmentSignals(signals: PrivateSignal[]): any {
+    // Aggregate parameter adjustment suggestions
+    const parameters: { [param: string]: number[] } = {};
+    
+    for (const signal of signals) {
+      if (signal.data.parameters) {
+        for (const [param, value] of Object.entries(signal.data.parameters)) {
+          if (!parameters[param]) {
+            parameters[param] = [];
+          }
+          parameters[param].push(value as number);
+        }
+      }
+    }
+
+    // Calculate averages for each parameter
+    const averages: { [param: string]: number } = {};
+    for (const [param, values] of Object.entries(parameters)) {
+      const sum = values.reduce((a, b) => a + b, 0);
+      averages[param] = sum / values.length;
+    }
+
+    return {
+      parameters,
+      averages,
+      totalResponses: signals.length
+    };
+  }
+
+  private aggregateCustomSignals(signals: PrivateSignal[]): any {
+    // Generic aggregation for custom signals
+    return {
+      totalSignals: signals.length,
+      data: signals.map(s => s.data),
+      timestamp: Date.now()
+    };
+  }
+
+  private aggregateGenericSignals(signals: PrivateSignal[]): any {
+    // Fallback generic aggregation
+    return {
+      totalSignals: signals.length,
+      signalData: signals.map(s => ({
+        type: s.type,
+        timestamp: s.timestamp,
+        data: s.data
+      }))
+    };
+  }
+
+  private calculateConsensus(support: { [decision: string]: number }): string {
+    // Determine if there's consensus (>66% support for one option)
+    for (const [decision, percentage] of Object.entries(support)) {
+      if (percentage > 66) {
+        return `Strong consensus for: ${decision}`;
+      }
+    }
+
+    // Check for majority (>50%)
+    for (const [decision, percentage] of Object.entries(support)) {
+      if (percentage > 50) {
+        return `Majority support for: ${decision}`;
+      }
+    }
+
+    return 'No clear consensus';
+  }
+
+  private async recordSignalOnChain(signalId: SignalId, signal: PrivateSignal, proof: SemaphoreProof): Promise<string> {
+    // Mock on-chain signal recording with Semaphore proof
+    const mockTxHash = `0x${Math.random().toString(16).substring(2, 66)}`;
+    console.log(`Recording anonymous signal on-chain: ${signalId} (type: ${signal.type})`);
+    console.log(`Signal nullifier: ${proof.nullifierHash}`);
+    await new Promise(resolve => setTimeout(resolve, 150));
+    return mockTxHash;
+  }
+
   // Private helper methods
 
   private generateProposalId(): ProposalId {
     const timestamp = Date.now();
     const random = Math.floor(Math.random() * 1000000);
     return `proposal_${timestamp}_${random}`;
+  }
+
+  private validateProposalType(proposal: Proposal): void {
+    const proposalType = proposal.proposalType || 'binary' as any;
+    
+    switch (proposalType) {
+      case 'binary':
+        if (proposal.options.length !== 2) {
+          throw new Error('Binary proposals must have exactly 2 options');
+        }
+        break;
+      
+      case 'multiple_choice':
+        if (proposal.options.length < 2) {
+          throw new Error('Multiple choice proposals must have at least 2 options');
+        }
+        break;
+      
+      case 'weighted':
+        if (proposal.options.length < 2) {
+          throw new Error('Weighted proposals must have at least 2 options');
+        }
+        break;
+      
+      case 'ranked_choice':
+        if (proposal.options.length < 3) {
+          throw new Error('Ranked choice proposals must have at least 3 options');
+        }
+        break;
+      
+      case 'quadratic':
+        if (proposal.options.length < 2) {
+          throw new Error('Quadratic proposals must have at least 2 options');
+        }
+        break;
+      
+      default:
+        throw new Error(`Unknown proposal type: ${proposalType}`);
+    }
+  }
+
+  private async finalizeResultsByType(results: VoteResults, proposal: Proposal): Promise<VoteResults> {
+    // Apply type-specific result processing
+    switch (proposal.proposalType) {
+      case 'binary':
+        return this.finalizeBinaryResults(results);
+      
+      case 'multiple_choice':
+        return this.finalizeMultipleChoiceResults(results);
+      
+      case 'weighted':
+        return this.finalizeWeightedResults(results);
+      
+      case 'ranked_choice':
+        return this.finalizeRankedChoiceResults(results);
+      
+      case 'quadratic':
+        return this.finalizeQuadraticResults(results);
+      
+      default:
+        return results;
+    }
+  }
+
+  private finalizeBinaryResults(results: VoteResults): VoteResults {
+    // Binary: simple majority wins
+    const options = Object.keys(results.results);
+    if (options.length === 2) {
+      const winner = results.results[options[0]] > results.results[options[1]] ? options[0] : options[1];
+      results.metadata = {
+        ...results.metadata,
+        winner,
+        winningMargin: Math.abs(results.results[options[0]] - results.results[options[1]])
+      };
+    }
+    return results;
+  }
+
+  private finalizeMultipleChoiceResults(results: VoteResults): VoteResults {
+    // Multiple choice: option with most votes wins
+    let maxVotes = 0;
+    let winner = '';
+    
+    for (const [option, votes] of Object.entries(results.results)) {
+      if (votes > maxVotes) {
+        maxVotes = votes;
+        winner = option;
+      }
+    }
+    
+    results.metadata = {
+      ...results.metadata,
+      winner,
+      winningVotes: maxVotes,
+      winningPercentage: (maxVotes / results.totalVotes) * 100
+    };
+    
+    return results;
+  }
+
+  private finalizeWeightedResults(results: VoteResults): VoteResults {
+    // Weighted: already handled by vote weight calculation
+    return this.finalizeMultipleChoiceResults(results);
+  }
+
+  private finalizeRankedChoiceResults(results: VoteResults): VoteResults {
+    // Ranked choice: instant runoff voting (simplified)
+    // In a full implementation, this would eliminate lowest-ranked options iteratively
+    return this.finalizeMultipleChoiceResults(results);
+  }
+
+  private finalizeQuadraticResults(results: VoteResults): VoteResults {
+    // Quadratic: apply square root to vote counts
+    const quadraticResults: { [option: string]: number } = {};
+    
+    for (const [option, votes] of Object.entries(results.results)) {
+      quadraticResults[option] = Math.sqrt(votes);
+    }
+    
+    // Find winner based on quadratic votes
+    let maxQuadraticVotes = 0;
+    let winner = '';
+    
+    for (const [option, quadraticVotes] of Object.entries(quadraticResults)) {
+      if (quadraticVotes > maxQuadraticVotes) {
+        maxQuadraticVotes = quadraticVotes;
+        winner = option;
+      }
+    }
+    
+    results.metadata = {
+      ...results.metadata,
+      winner,
+      quadraticResults,
+      winningQuadraticVotes: maxQuadraticVotes
+    };
+    
+    return results;
   }
 
   private generateVoteId(): VoteId {

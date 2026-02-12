@@ -1,0 +1,7 @@
+[package]
+name = "mystery_box_reveal"
+type = "bin"
+authors = ["Kirito SDK Team"]
+compiler_version = ">=0.23.0"
+
+[dependencies]

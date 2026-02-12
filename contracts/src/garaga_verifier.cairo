@@ -29,31 +29,31 @@ trait IGaragaVerifier<TContractState> {
 
 // Mystery Box reveal proof structure
 #[derive(Drop, Serde, starknet::Store)]
-struct RevealProof {
-    proof_data: Array<felt252>,
-    public_inputs: Array<felt252>,
-    proof_type: u8, // 1 = full reveal, 2 = bluffing reveal
-    vk_hash: felt252,
+pub struct RevealProof {
+    pub proof_data: Array<felt252>,
+    pub public_inputs: Array<felt252>,
+    pub proof_type: u8, // 1 = full reveal, 2 = bluffing reveal
+    pub vk_hash: felt252,
 }
 
 // Mystery Box state
 #[derive(Drop, Serde, starknet::Store)]
-struct MysteryBoxState {
-    token_id: felt252,
-    owner: ContractAddress,
-    commitment: felt252,
-    reveal_conditions: RevealConditions,
-    is_revealed: bool,
-    reveal_timestamp: u64,
+pub struct MysteryBoxState {
+    pub token_id: felt252,
+    pub owner: ContractAddress,
+    pub commitment: felt252,
+    pub reveal_conditions: RevealConditions,
+    pub is_revealed: bool,
+    pub reveal_timestamp: u64,
 }
 
 // Reveal conditions
 #[derive(Drop, Serde, starknet::Store)]
-struct RevealConditions {
-    condition_type: u8, // 1 = timelock, 2 = action, 3 = combined
-    timestamp: u64,
-    required_action: u8,
-    minimum_stake: u256,
+pub struct RevealConditions {
+    pub condition_type: u8, // 1 = timelock, 2 = action, 3 = combined
+    pub timestamp: u64,
+    pub required_action: u8,
+    pub minimum_stake: u256,
 }
 
 // Events
@@ -88,7 +88,7 @@ struct BluffingProofVerified {
 }
 
 #[starknet::contract]
-mod GaragaMysteryBoxVerifier {
+pub mod GaragaMysteryBoxVerifier {
     use super::{
         IGaragaVerifier, RevealProof, MysteryBoxState, RevealConditions,
         MysteryBoxCreated, MysteryBoxRevealed, BluffingProofVerified
@@ -388,7 +388,7 @@ mod GaragaMysteryBoxVerifier {
 
 // Interface for the mystery box verifier
 #[starknet::interface]
-trait IGaragaMysteryBoxVerifier<TContractState> {
+pub trait IGaragaMysteryBoxVerifier<TContractState> {
     fn create_mystery_box(
         ref self: TContractState,
         box_id: felt252,

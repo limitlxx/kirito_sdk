@@ -20,5 +20,7 @@ __exportStar(require("./nft-wallet"), exports);
 __exportStar(require("./shielded-pool"), exports);
 __exportStar(require("./mystery-box"), exports);
 __exportStar(require("./governance"), exports);
+__exportStar(require("./auction"), exports);
 __exportStar(require("./error-handler"), exports);
+__exportStar(require("./bridge"), exports);
 //# sourceMappingURL=index.js.map

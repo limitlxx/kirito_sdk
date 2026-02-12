@@ -20,4 +20,16 @@ __exportStar(require("./nft-wallet"), exports);
 __exportStar(require("./shielded-pool"), exports);
 __exportStar(require("./mystery-box"), exports);
 __exportStar(require("./governance"), exports);
+__exportStar(require("./auction"), exports);
+__exportStar(require("./layerswap-bridge"), exports);
+__exportStar(require("./garden-finance-bridge"), exports);
+__exportStar(require("./xverse-bridge"), exports);
+__exportStar(require("./yield-source-selector"), exports);
+__exportStar(require("./token-conversion-aggregator"), exports);
+__exportStar(require("./wallet-allocation"), exports);
+__exportStar(require("./defi-yield-aggregator"), exports);
+__exportStar(require("./comprehensive-wallet"), exports);
+__exportStar(require("./vesu-integration"), exports);
+__exportStar(require("./ekubo-integration"), exports);
+__exportStar(require("./wallet-connector"), exports);
 //# sourceMappingURL=index.js.map

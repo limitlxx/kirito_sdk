@@ -60,6 +60,7 @@ export interface TokenMetadata {
     rarityScore: number;
     semaphoreGroupId?: string;
     hiddenTraits?: EncryptedData;
+    auctionId?: string;
 }
 export interface LayerConfig {
     name: string;
@@ -87,6 +88,7 @@ export interface GenerationConfig {
     hiddenTraits?: HiddenTraitConfig;
     collectionSize: number;
     semaphoreGroupId?: string;
+    extraMetadata?: any;
 }
 export interface CollectionMetadata {
     tokens: TokenMetadata[];
@@ -129,6 +131,13 @@ export interface RevealedTraits {
     timestamp: Timestamp;
     proof: ZKProof;
 }
+export declare enum ProposalType {
+    BINARY = "binary",// Yes/No proposals
+    MULTIPLE_CHOICE = "multiple_choice",// Multiple options
+    WEIGHTED = "weighted",// Weighted voting
+    RANKED_CHOICE = "ranked_choice",// Ranked choice voting
+    QUADRATIC = "quadratic"
+}
 export interface Proposal {
     id: ProposalId;
     title: string;
@@ -137,6 +146,12 @@ export interface Proposal {
     groupId: GroupId;
     deadline: Timestamp;
     votingPower: VotingPowerType;
+    proposalType: ProposalType;
+    metadata?: {
+        minParticipation?: number;
+        quorum?: number;
+        [key: string]: any;
+    };
 }
 export declare enum VotingPowerType {
     EQUAL = "equal",
@@ -150,6 +165,12 @@ export interface VoteResults {
         [option: string]: number;
     };
     isFinalized: boolean;
+    proposalType: ProposalType;
+    metadata?: {
+        participationRate?: number;
+        quorumMet?: boolean;
+        [key: string]: any;
+    };
 }
 export interface YieldAmount {
     amount: bigint;
@@ -159,6 +180,50 @@ export interface YieldAmount {
 export interface TimePeriod {
     start: Timestamp;
     end: Timestamp;
+}
+export interface StakingInfo {
+    tokenId: TokenId;
+    stakedAmount: bigint;
+    rarityScore: number;
+    yieldMultiplier: number;
+    lastClaimTimestamp: Timestamp;
+}
+export interface SourceYieldData {
+    sourceId: string;
+    sourceName: string;
+    rawYield: bigint;
+    weightedYield: bigint;
+    weight: number;
+    token: Address;
+}
+export interface AggregatedYield {
+    totalYield: bigint;
+    sourceBreakdown: SourceYieldData[];
+    period: TimePeriod;
+    aggregationTimestamp: Timestamp;
+}
+export interface StakingStatistics {
+    totalStakedAmount: bigint;
+    totalRarityWeight: number;
+    activeStakers: number;
+    averageStake: bigint;
+    averageRarity: number;
+}
+export interface YieldClaimProofData {
+    tokenId: TokenId;
+    stakedAmount: bigint;
+    rarityScore: number;
+    yieldMultiplier: number;
+    claimAmount: bigint;
+    stakingNote: ShieldedNote;
+    lastClaimTimestamp: Timestamp;
+}
+export interface YieldEligibilityPublicInputs {
+    tokenId: TokenId;
+    claimAmount: bigint;
+    merkleRoot: string;
+    nullifierHash: string;
+    currentTimestamp: Timestamp;
 }
 export interface UserOperation {
     sender: Address;
@@ -204,6 +269,7 @@ export interface KiritoSDKConfig {
         tongoEndpoint: string;
         semaphoreEndpoint: string;
     };
+    starknetAccount?: any;
 }
 export interface Signal {
     message: string;
@@ -212,6 +278,38 @@ export interface Signal {
 export interface Identity {
     privateKey: Uint8Array;
     commitment: Commitment;
+}
+export type SignalId = string;
+export declare enum SignalType {
+    YIELD_STRATEGY = "yield_strategy",
+    REVEAL_TIMING = "reveal_timing",
+    COLLECTION_DECISION = "collection_decision",
+    PARAMETER_ADJUSTMENT = "parameter_adjustment",
+    CUSTOM = "custom"
+}
+export interface PrivateSignal {
+    type: SignalType;
+    scope: string;
+    data: any;
+    groupId: GroupId;
+    timestamp: Timestamp;
+}
+export interface SignalResults {
+    scope: string;
+    signalType: SignalType;
+    totalSignals: number;
+    aggregatedData: any;
+    timestamp: Timestamp;
+}
+export interface AggregatedSignals {
+    signalType: SignalType;
+    scope: string;
+    signals: PrivateSignal[];
+    aggregation: {
+        [key: string]: number | string | any;
+    };
+    participantCount: number;
+    timestamp: Timestamp;
 }
 export interface Secret {
     value: any;
@@ -238,6 +336,56 @@ export interface MetadataSet {
 }
 export interface HiddenTraits {
     [traitType: string]: any;
+}
+export type AuctionId = string;
+export type BidId = string;
+export interface BidCommitment {
+    bidId: BidId;
+    commitment: string;
+    bidder: Address;
+    timestamp: Timestamp;
+}
+export interface SealedBid {
+    bidId: BidId;
+    amount: bigint;
+    nonce: Uint8Array;
+    bidder: Address;
+    commitment: string;
+    isRevealed: boolean;
+}
+export interface AuctionConfig {
+    tokenId: TokenId;
+    startingPrice: bigint;
+    reservePrice?: bigint;
+    commitmentPhaseEnd: Timestamp;
+    revealPhaseEnd: Timestamp;
+    auctioneer: Address;
+}
+export interface Auction {
+    id: AuctionId;
+    config: AuctionConfig;
+    state: AuctionState;
+    bids: BidCommitment[];
+    revealedBids: SealedBid[];
+    winner?: Address;
+    winningBid?: bigint;
+    createdAt: Timestamp;
+    finalizedAt?: Timestamp;
+}
+export declare enum AuctionState {
+    CREATED = "created",
+    COMMITMENT_PHASE = "commitment_phase",
+    REVEAL_PHASE = "reveal_phase",
+    FINALIZED = "finalized",
+    CANCELLED = "cancelled"
+}
+export interface AuctionResults {
+    auctionId: AuctionId;
+    winner: Address;
+    winningBid: bigint;
+    totalBids: number;
+    revealedBids: number;
+    finalizedAt: Timestamp;
 }
 export declare enum ErrorType {
     CRYPTOGRAPHIC_ERROR = "cryptographic_error",

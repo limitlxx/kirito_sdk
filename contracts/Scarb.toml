@@ -6,6 +6,9 @@ edition = "2023_11"
 [dependencies]
 starknet = "2.6.3"
 
+[dev-dependencies]
+snforge_std = "0.44.0"
+
 [[target.starknet-contract]]
 sierra = true
 casm = true

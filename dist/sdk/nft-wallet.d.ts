@@ -13,9 +13,24 @@ export declare class NFTWalletSDK implements NFTWallet {
      */
     mint(recipient: Address, stakingAmount: bigint, metadata: TokenMetadata): Promise<TokenId>;
     /**
+     * Mint NFT through sealed-bid auction
+     */
+    mintThroughAuction(auctionId: string, stakingAmount: bigint, metadata: TokenMetadata): Promise<{
+        tokenId: TokenId;
+        transactionHash: TransactionHash;
+    }>;
+    /**
      * Transfer NFT between addresses
      */
     transfer(from: Address, to: Address, tokenId: TokenId): Promise<TransactionHash>;
+    /**
+     * Private transfer using stealth addresses
+     */
+    privateTransfer(from: Address, recipientPublicKey: string, tokenId: TokenId): Promise<{
+        transactionHash: TransactionHash;
+        stealthAddress: Address;
+        ephemeralKey: Uint8Array;
+    }>;
     /**
      * Execute transaction from NFT wallet
      */
@@ -32,6 +47,20 @@ export declare class NFTWalletSDK implements NFTWallet {
      * Check if NFT exists
      */
     exists(tokenId: TokenId): Promise<boolean>;
+    /**
+     * Scan for NFTs received via stealth addresses
+     */
+    scanStealthTransfers(privateKey: Uint8Array, ephemeralKeys: Uint8Array[], fromBlock?: number): Promise<{
+        stealthAddresses: Address[];
+        potentialNFTs: TokenId[];
+    }>;
+    /**
+     * Recover stealth address from ephemeral key
+     */
+    recoverStealthAddress(ephemeralPublicKey: Uint8Array, recipientPrivateKey: Uint8Array): Promise<{
+        stealthAddress: Address;
+        sharedSecret: Uint8Array;
+    }>;
     private generateTokenId;
     private encodeMintData;
     private encodeTransferData;
