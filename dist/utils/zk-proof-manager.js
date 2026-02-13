@@ -38,6 +38,7 @@ var __importStar = (this && this.__importStar) || (function () {
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ZKProofManager = void 0;
+const path_1 = require("path");
 /**
  * Zero-Knowledge Proof Manager
  * Handles proof generation and verification for yield claims
@@ -291,7 +292,7 @@ class ZKProofManager {
             // Use Noir circuit for proof generation
             // This requires the yield claim circuit to be compiled
             const { NoirMysteryBoxCircuit } = await Promise.resolve().then(() => __importStar(require('../circuits/noir-integration')));
-            const circuitPath = join(process.cwd(), 'circuits', 'yield-claim');
+            const circuitPath = (0, path_1.join)(process.cwd(), 'circuits', 'yield-claim');
             const noirCircuit = new NoirMysteryBoxCircuit(circuitPath);
             // Prepare circuit inputs in Noir format
             const noirInputs = {
@@ -336,7 +337,7 @@ class ZKProofManager {
             merkleProof: circuitInputs.merkleProof
         }));
         // Generate commitment using HMAC
-        const key = await crypto.subtle.importKey('raw', circuitInputs.stakingSecret, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+        const key = await crypto.subtle.importKey('raw', new Uint8Array(circuitInputs.stakingSecret), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
         const commitment = await crypto.subtle.sign('HMAC', key, privateInputsData);
         // Combine commitment with public inputs hash
         const publicInputsData = new TextEncoder().encode(JSON.stringify({
@@ -366,8 +367,8 @@ class ZKProofManager {
                 const { GaragaMysteryBoxVerifier } = await Promise.resolve().then(() => __importStar(require('../circuits/garaga-integration')));
                 // Initialize Garaga verifier
                 const garagaVerifier = new GaragaMysteryBoxVerifier(this.config, {
-                    fullRevealVkPath: join(process.cwd(), 'circuits', 'vk', 'yield_claim_full.json'),
-                    bluffingRevealVkPath: join(process.cwd(), 'circuits', 'vk', 'yield_claim_bluffing.json')
+                    fullRevealVkPath: (0, path_1.join)(process.cwd(), 'circuits', 'vk', 'yield_claim_full.json'),
+                    bluffingRevealVkPath: (0, path_1.join)(process.cwd(), 'circuits', 'vk', 'yield_claim_bluffing.json')
                 });
                 // Verify proof on-chain using Garaga
                 if (garagaVerifier && this.config.network.contracts.garagaVerifier) {

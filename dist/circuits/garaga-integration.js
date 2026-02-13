@@ -138,7 +138,7 @@ class GaragaMysteryBoxVerifier {
                 throw new Error('Verifier contract not initialized. Call initialize() first.');
             }
             // Convert proof to Garaga format
-            const garagaProof = this.convertToGaragaFormat(proof, revealType);
+            const garagaProof = await this.convertToGaragaFormat(proof, revealType);
             console.log(`Verifying ${revealType} reveal proof on-chain for mystery box ${boxId}...`);
             // Call Garaga verifier contract using BN254 curve
             const result = await this.verifierContract.call('verify_groth16_proof_bn254', starknet_1.CallData.compile({
@@ -198,7 +198,7 @@ class GaragaMysteryBoxVerifier {
                 throw new Error('Contract or account not initialized. Call initialize() first.');
             }
             // Convert proof to Garaga format
-            const garagaProof = this.convertToGaragaFormat(proof, revealType);
+            const garagaProof = await this.convertToGaragaFormat(proof, revealType);
             console.log(`Submitting ${revealType} reveal transaction for mystery box ${boxId}...`);
             // Prepare call data
             const callData = starknet_1.CallData.compile({
@@ -375,8 +375,8 @@ class GaragaMysteryBoxVerifier {
             console.log(`Transaction submitted: ${response.transaction_hash}`);
             await this.provider.waitForTransaction(response.transaction_hash);
             // Update local cache
-            this.fullRevealVkHashPromise = fullRevealVk;
-            this.bluffingRevealVkHashPromise = bluffingRevealVk;
+            this.fullRevealVkHashPromise = Promise.resolve(fullRevealVk);
+            this.bluffingRevealVkHashPromise = Promise.resolve(bluffingRevealVk);
             console.log('✓ Verification keys updated successfully');
         }
         catch (error) {
