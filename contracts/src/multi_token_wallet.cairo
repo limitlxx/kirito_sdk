@@ -338,9 +338,11 @@ pub mod MultiTokenWallet {
         }
     }
 
+    // Account abstraction methods implemented directly (not through interface)
+    // These provide transaction execution capabilities for the wallet
     #[abi(embed_v0)]
-    impl AccountAbstractionImpl of crate::interfaces::IAccountAbstraction<ContractState> {
-        fn execute_transaction(
+    impl AccountAbstractionImpl of IAccountAbstraction<ContractState> {
+        fn _execute_transaction(
             ref self: ContractState,
             to: ContractAddress,
             value: u256,
@@ -361,7 +363,7 @@ pub mod MultiTokenWallet {
             result
         }
 
-        fn get_nonce(self: @ContractState) -> u256 {
+        fn _get_nonce(self: @ContractState) -> u256 {
             self.nonce.read()
         }
 
@@ -374,6 +376,22 @@ pub mod MultiTokenWallet {
             // against owner's public key and transaction hash
             signature.len() > 0 && !self.paused.read()
         }
+    }
+    
+    #[starknet::interface]
+    trait IAccountAbstraction<TContractState> {
+        fn execute_transaction(
+            ref self: TContractState,
+            to: ContractAddress,
+            value: u256,
+            data: Span<felt252>
+        ) -> Span<felt252>;
+        fn get_nonce(self: @TContractState) -> u256;
+        fn validate_transaction(
+            self: @TContractState,
+            transaction_hash: felt252,
+            signature: Span<felt252>
+        ) -> bool;
     }
 
     #[generate_trait]
