@@ -1,8 +1,8 @@
 #[starknet::contract]
 pub mod MultiTokenWallet {
     use starknet::{
-        ContractAddress, ClassHash, get_caller_address, get_contract_address,
-        syscalls::{call_contract_syscall, deploy_syscall}
+        ContractAddress, get_caller_address,
+        syscalls::call_contract_syscall
     };
     use starknet::storage::*;
     use core::array::ArrayTrait;
@@ -242,7 +242,7 @@ pub mod MultiTokenWallet {
             
             // Register token
             self.supported_tokens.write(token, true);
-            self.token_symbols.write(token, symbol);
+            self.token_symbols.write(token, symbol.clone());
             self.token_decimals.write(token, decimals);
             
             // Add to registry
@@ -441,7 +441,7 @@ pub mod MultiTokenWallet {
             let decimals = self._query_token_decimals(token);
             
             self.supported_tokens.write(token, true);
-            self.token_symbols.write(token, symbol);
+            self.token_symbols.write(token, symbol.clone());
             self.token_decimals.write(token, decimals);
             
             let current_count = self.token_count.read();
@@ -469,7 +469,7 @@ pub mod MultiTokenWallet {
                         "UNKNOWN"
                     }
                 },
-                Result::Err(_) => "UNKNOWN"
+                Result::Err(_err) => "UNKNOWN"
             }
         }
 
@@ -491,7 +491,7 @@ pub mod MultiTokenWallet {
                         18
                     }
                 },
-                Result::Err(_) => 18
+                Result::Err(_err) => 18
             }
         }
 
@@ -550,7 +550,7 @@ pub mod MultiTokenWallet {
             
             match result {
                 Result::Ok(_) => {},
-                Result::Err(err) => {
+                Result::Err(_err) => {
                     // Handle transfer failure
                     panic!("Token transfer failed");
                 }

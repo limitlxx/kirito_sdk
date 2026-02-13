@@ -53,6 +53,7 @@ export declare class GardenFinanceBridgeImpl implements GardenFinanceBridge {
     private makeRequest;
     /**
      * Generate cryptographically secure random secret for atomic swap
+     * Uses Web Crypto API for true randomness
      */
     private generateSecureSecret;
     /**

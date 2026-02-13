@@ -835,6 +835,32 @@ MIT License - see [LICENSE](LICENSE) for details.
 - [Documentation](https://docs.kirito.dev)
 
 
+## Demo Application
+
+A comprehensive React demo application is available in the `demo/` directory, showcasing all SDK features:
+
+```bash
+# Navigate to demo directory
+cd demo
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+```
+
+The demo application includes:
+- NFT minting with multi-token support (ETH, STRK, USDC, BTC, WBTC)
+- Real-time token conversion and rate preview
+- Yield source selection and allocation configuration
+- Multi-token wallet management
+- Yield tracking across DeFi protocols
+- Mystery box and governance interfaces
+- Comprehensive integration tests
+
+See [demo/README.md](demo/README.md) for detailed documentation.
+
 ## Development Guide
 
 ### Prerequisites

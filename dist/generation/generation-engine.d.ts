@@ -93,7 +93,7 @@ export declare class KiritoGenerationEngine implements GenerationEngine {
     /**
      * Generate encryption key from password
      */
-    static generateEncryptionKeyFromPassword(password: string, salt?: Uint8Array): EncryptionKey;
+    static generateEncryptionKeyFromPassword(password: string, salt?: Uint8Array): Promise<EncryptionKey>;
     /**
      * Create generation config from directory structure (HashLips-compatible)
      */

@@ -48,6 +48,7 @@ export interface WalletConnectionResult {
     address?: Address;
     account?: Account;
     error?: string;
+    btcAddress?: Address;
 }
 /**
  * Transaction request
@@ -136,6 +137,11 @@ export declare class WalletConnector {
     private connectArgentX;
     private connectBraavos;
     private connectXverse;
+    /**
+     * Derive Starknet address from Bitcoin public key
+     * Uses deterministic derivation for consistent address mapping
+     */
+    private deriveStarknetAddressFromBTC;
     private getWalletName;
     private initializeEventHandlers;
     private emit;

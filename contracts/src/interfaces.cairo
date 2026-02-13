@@ -1,6 +1,7 @@
 use starknet::{ContractAddress, ClassHash};
 
 // Core interfaces for Kirito SDK contracts
+// Note: Use starknet::account::Call for account abstraction
 
 #[starknet::interface]
 pub trait IERC721<TContractState> {
@@ -219,21 +220,9 @@ pub trait IMultiTokenWallet<TContractState> {
     fn is_paused(self: @TContractState) -> bool;
 }
 
-#[starknet::interface]
-pub trait IAccountAbstraction<TContractState> {
-    fn execute_transaction(
-        ref self: TContractState,
-        to: ContractAddress,
-        value: u256,
-        data: Span<felt252>
-    ) -> Span<felt252>;
-    fn get_nonce(self: @TContractState) -> u256;
-    fn validate_transaction(
-        self: @TContractState,
-        transaction_hash: felt252,
-        signature: Span<felt252>
-    ) -> bool;
-}
+// Note: Protocol-level account abstraction methods (__execute__, __validate__, __validate_declare__)
+// should be implemented directly in the contract, not through an interface trait.
+// This interface is for custom wallet operations only.
 
 #[starknet::interface]
 pub trait IYieldDistributor<TContractState> {
@@ -286,17 +275,17 @@ pub trait IYieldDistributor<TContractState> {
         recipient: ContractAddress
     ) -> u256;
     
-    // View functions
+    // View functions - return tuples instead of structs for ABI compatibility
     fn get_allocation_data(
         self: @TContractState,
         nft_contract: ContractAddress,
         token_id: u256
-    ) -> (u256, u256, u256, u256, u256, u64); // AllocationData fields
+    ) -> (u256, u256, u256, u256, u256, u64);
     
     fn get_yield_source_info(
         self: @TContractState,
         source_contract: ContractAddress
-    ) -> (ByteArray, ContractAddress, ContractAddress, u256, u256, u64, bool); // YieldSourceInfo fields
+    ) -> (ByteArray, ContractAddress, ContractAddress, u256, u256, u64, bool);
     
     fn get_collection_total_weight(
         self: @TContractState,
@@ -422,6 +411,13 @@ pub trait ITongoPool<TContractState> {
     // Admin functions
     fn add_supported_token(ref self: TContractState, token: ContractAddress);
     fn set_yield_distributor(ref self: TContractState, distributor: ContractAddress);
+    fn update_garaga_verifier(ref self: TContractState, new_verifier: ContractAddress);
+    fn update_verification_keys(
+        ref self: TContractState,
+        transfer_vk: felt252,
+        withdraw_vk: felt252
+    );
+    fn get_garaga_verifier(self: @TContractState) -> ContractAddress;
     fn pause(ref self: TContractState);
     fn unpause(ref self: TContractState);
     fn is_paused(self: @TContractState) -> bool;

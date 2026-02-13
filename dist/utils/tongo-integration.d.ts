@@ -75,9 +75,17 @@ export declare class TongoIntegration {
      */
     scanStealthAddresses(privateKey: Uint8Array, ephemeralKeys: Uint8Array[]): Promise<Address[]>;
     /**
-     * Initialize Tongo contract connection
+     * Initialize Tongo contract connection with real contract
      */
     private initializeTongoContract;
+    /**
+     * Load Tongo contract ABI
+     */
+    private loadTongoAbi;
+    /**
+     * Verify Tongo contract connection
+     */
+    private verifyTongoContract;
     /**
      * Generate public key from private key using elliptic curve operations
      */
@@ -107,15 +115,23 @@ export declare class TongoIntegration {
      */
     private generateNullifier;
     /**
-     * Generate zero-knowledge proof for transfer
+     * Generate zero-knowledge proof for transfer using real ZK library
      */
     private generateTransferProof;
     /**
-     * Generate zero-knowledge proof for withdrawal
+     * Generate Pedersen commitment as fallback
+     */
+    private generatePedersenCommitment;
+    /**
+     * Generate zero-knowledge proof for withdrawal using real ZK library
      */
     private generateWithdrawalProof;
     /**
-     * Generate shared secret with recipient
+     * Generate signature-based proof as fallback
+     */
+    private generateSignatureProof;
+    /**
+     * Generate shared secret with recipient using ECDH
      */
     private generateSharedSecret;
     /**
@@ -142,6 +158,10 @@ export declare class TongoIntegration {
      * Verify balance proof without revealing the actual balance
      */
     verifyBalanceProof(proof: Uint8Array, publicInputs: Uint8Array[], ownerPublicKey: string, tokenAddress: Address): Promise<boolean>;
+    /**
+     * Verify proof format and structure
+     */
+    private verifyProofFormat;
     /**
      * Generate proof of transaction history without revealing amounts
      */

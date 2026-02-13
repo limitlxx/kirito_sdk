@@ -15,17 +15,6 @@ export interface SDKLogger {
     error(message: string, error?: Error, context?: any): void;
 }
 /**
- * Default console logger implementation
- */
-declare class ConsoleLogger implements SDKLogger {
-    private enableDebug;
-    constructor(enableDebug?: boolean);
-    debug(message: string, context?: any): void;
-    info(message: string, context?: any): void;
-    warn(message: string, context?: any): void;
-    error(message: string, error?: Error, context?: any): void;
-}
-/**
  * Main Kirito SDK Class
  * Provides unified interface to all privacy-focused NFT functionality
  *
@@ -208,8 +197,4 @@ export declare class KiritoSDK {
  * Factory function to create Kirito SDK instance
  */
 export declare function createKiritoSDK(config?: Partial<KiritoSDKConfig>, logger?: SDKLogger): KiritoSDK;
-/**
- * Export logger interface and implementation for custom loggers
- */
-export { SDKLogger, ConsoleLogger };
 //# sourceMappingURL=kirito-sdk.d.ts.map

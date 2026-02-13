@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ConsoleLogger = exports.KiritoSDK = void 0;
+exports.KiritoSDK = void 0;
 exports.createKiritoSDK = createKiritoSDK;
 const config_1 = require("./config");
 const nft_wallet_1 = require("./nft-wallet");
@@ -34,7 +34,6 @@ class ConsoleLogger {
         console.error(`[Kirito SDK ERROR] ${message}`, error || '', context || '');
     }
 }
-exports.ConsoleLogger = ConsoleLogger;
 /**
  * Main Kirito SDK Class
  * Provides unified interface to all privacy-focused NFT functionality

@@ -360,24 +360,18 @@ export class GardenFinanceBridgeImpl implements GardenFinanceBridge {
 
   /**
    * Generate cryptographically secure random secret for atomic swap
+   * Uses Web Crypto API for true randomness
    */
   private async generateSecureSecret(): Promise<string> {
     // Use Web Crypto API for secure random generation
-    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-      const array = new Uint8Array(32); // 32 bytes = 256 bits
-      crypto.getRandomValues(array);
-      
-      // Convert to hex string
-      return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+    if (typeof crypto === 'undefined' || !crypto.getRandomValues) {
+      throw new Error('Web Crypto API not available. Secure random generation requires a modern browser or Node.js 15+');
     }
     
-    // Fallback for environments without crypto.getRandomValues
-    // This should not be used in production
-    console.warn('crypto.getRandomValues not available, using fallback (NOT SECURE FOR PRODUCTION)');
-    const array = new Uint8Array(32);
-    for (let i = 0; i < array.length; i++) {
-      array[i] = Math.floor(Math.random() * 256);
-    }
+    const array = new Uint8Array(32); // 32 bytes = 256 bits
+    crypto.getRandomValues(array);
+    
+    // Convert to hex string
     return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
   }
 

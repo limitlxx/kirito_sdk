@@ -294,7 +294,7 @@ class KiritoGenerationEngine {
     /**
      * Generate encryption key from password
      */
-    static generateEncryptionKeyFromPassword(password, salt) {
+    static async generateEncryptionKeyFromPassword(password, salt) {
         const manager = new encryption_1.HiddenTraitEncryption();
         return manager.generateKeyFromPassword(password, salt);
     }

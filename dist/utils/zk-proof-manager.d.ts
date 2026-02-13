@@ -93,7 +93,19 @@ export declare class ZKProofManager {
     private deriveStakingSecret;
     private generateStakingMerkleProof;
     private generateCircuitProof;
+    /**
+     * Generate commitment-based proof as fallback
+     */
+    private generateCommitmentProof;
     private verifyCircuitProof;
+    /**
+     * Verify commitment-based proof
+     */
+    private verifyCommitmentProof;
+    /**
+     * Get account for transactions (helper method)
+     */
+    private getAccount;
     private extractPublicInputs;
     private verifyMerkleRoot;
     private bigIntToBytes;

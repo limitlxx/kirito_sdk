@@ -1,7 +1,5 @@
-use starknet::{ContractAddress, get_caller_address, get_contract_address};
-use openzeppelin::access::ownable::OwnableComponent;
-use openzeppelin::upgrades::UpgradeableComponent;
-use openzeppelin::security::ReentrancyGuardComponent;
+use starknet::ContractAddress;
+
 
 #[starknet::interface]
 pub trait IBTCYieldManager<TContractState> {
@@ -98,27 +96,23 @@ pub struct ConversionRate {
 pub mod BTCYieldManager {
     use super::{IBTCYieldManager, YieldSource, YieldPosition, ConversionRate};
     use starknet::{
-        ContractAddress, get_caller_address, get_contract_address, get_block_timestamp
+        ContractAddress, get_caller_address, get_block_timestamp
     };
+    use starknet::storage::{Map, StoragePathEntry, StoragePointerReadAccess, StoragePointerWriteAccess};
     use openzeppelin::access::ownable::OwnableComponent;
-    use openzeppelin::upgrades::UpgradeableComponent;
-    use openzeppelin::security::ReentrancyGuardComponent;
-    use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
+    use openzeppelin::upgrades::upgradeable::UpgradeableComponent;
+    use openzeppelin::security::reentrancyguard::ReentrancyGuardComponent;
 
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
     component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
     component!(path: ReentrancyGuardComponent, storage: reentrancy_guard, event: ReentrancyGuardEvent);
 
     #[abi(embed_v0)]
-    impl OwnableImpl = OwnableComponent::OwnableImpl<ContractState>;
+    impl OwnableImpl = OwnableComponent::OwnableMixinImpl<ContractState>;
     impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
 
-    #[abi(embed_v0)]
-    impl UpgradeableImpl = UpgradeableComponent::UpgradeableImpl<ContractState>;
     impl UpgradeableInternalImpl = UpgradeableComponent::InternalImpl<ContractState>;
 
-    #[abi(embed_v0)]
-    impl ReentrancyGuardImpl = ReentrancyGuardComponent::ReentrancyGuardImpl<ContractState>;
     impl ReentrancyGuardInternalImpl = ReentrancyGuardComponent::InternalImpl<ContractState>;
 
     #[storage]
@@ -132,19 +126,18 @@ pub mod BTCYieldManager {
         reentrancy_guard: ReentrancyGuardComponent::Storage,
         
         // Yield sources
-        yield_sources: LegacyMap<felt252, YieldSource>,
-        active_sources: LegacyMap<u32, felt252>,
+        yield_sources: Map<felt252, YieldSource>,
+        active_sources: Map<u32, felt252>,
         source_count: u32,
         
         // Yield positions
-        yield_positions: LegacyMap<(u256, felt252), YieldPosition>,
-        nft_yield_sources: LegacyMap<u256, Array<felt252>>,
+        yield_positions: Map<(u256, felt252), YieldPosition>,
         
         // Conversion rates
-        conversion_rates: LegacyMap<(ContractAddress, ContractAddress), ConversionRate>,
+        conversion_rates: Map<(ContractAddress, ContractAddress), ConversionRate>,
         
         // Oracle addresses
-        authorized_oracles: LegacyMap<ContractAddress, bool>,
+        authorized_oracles: Map<ContractAddress, bool>,
         
         // Total statistics
         total_yield_distributed: u256,
@@ -263,12 +256,18 @@ pub mod BTCYieldManager {
         ) {
             self.ownable.assert_only_owner();
             
-            let mut source = self.yield_sources.read(source_id);
-            source.apy = apy;
-            source.is_active = is_active;
-            source.last_updated = get_block_timestamp();
+            let old_source = self.yield_sources.read(source_id);
+            let updated_source = YieldSource {
+                id: source_id,
+                source_address: old_source.source_address,
+                token_address: old_source.token_address,
+                apy: apy,
+                total_deposited: old_source.total_deposited,
+                is_active: is_active,
+                last_updated: get_block_timestamp(),
+            };
             
-            self.yield_sources.write(source_id, source);
+            self.yield_sources.entry(source_id).write(updated_source);
             
             self.emit(YieldSourceUpdated {
                 source_id,
@@ -330,9 +329,13 @@ pub mod BTCYieldManager {
             period: u64
         ) -> u256 {
             let position = self.yield_positions.read((nft_id, source_id));
-            let source = self.yield_sources.read(source_id);
             
-            if position.nft_id == 0 || !source.is_active {
+            if position.nft_id == 0 {
+                return 0;
+            }
+            
+            let source = self.yield_sources.read(source_id);
+            if !source.is_active {
                 return 0;
             }
             
@@ -363,7 +366,7 @@ pub mod BTCYieldManager {
             let mut i = 0;
             
             while i < nft_ids.len() {
-                let nft_id = *nft_ids.at(i);
+                let _nft_id = *nft_ids.at(i);
                 let amount = *amounts.at(i);
                 
                 // Update yield for NFT (simplified)

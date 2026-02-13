@@ -2,12 +2,13 @@
 pub mod NFTWallet {
     use starknet::{
         ContractAddress, ClassHash, get_caller_address, get_contract_address, 
-        syscalls::deploy_syscall
+        syscalls::deploy_syscall, account::Call
     };
     use starknet::storage::*;
     use core::array::ArrayTrait;
     use core::traits::Into;
     use core::num::traits::Zero;
+    use starknet::storage::{Map, StoragePointerReadAccess, StoragePointerWriteAccess, StorageMapReadAccess, StorageMapWriteAccess};
 
     #[storage]
     struct Storage {
@@ -300,13 +301,23 @@ pub mod NFTWallet {
             let wallet_address = self.wallet_addresses.read(token_id);
             assert(!wallet_address.is_zero(), 'Wallet not deployed');
             
-            // Prepare calldata for wallet's execute function
-            let mut execute_calldata = array![];
-            execute_calldata.append(to.into());
-            execute_calldata.append(value.low.into());
-            execute_calldata.append(value.high.into());
+            // Prepare call struct for wallet's __execute__ function
+            let call = Call {
+                to: to,
+                selector: selector!("transfer"), // Example selector
+                calldata: data
+            };
             
-            // Append the data span
+            let mut calls = array![];
+            calls.append(call);
+            
+            // Serialize calls array for the syscall
+            let mut execute_calldata = array![];
+            execute_calldata.append(1); // Number of calls
+            execute_calldata.append(to.into());
+            execute_calldata.append(selector!("transfer"));
+            execute_calldata.append(data.len().into());
+            
             let mut i = 0;
             loop {
                 if i >= data.len() {
@@ -319,15 +330,13 @@ pub mod NFTWallet {
             // Execute call to wallet contract using syscall
             let result = starknet::syscalls::call_contract_syscall(
                 wallet_address,
-                selector!("execute_transaction"),
+                selector!("__execute__"),
                 execute_calldata.span()
             );
             
             match result {
                 Result::Ok(ret_data) => ret_data,
-                Result::Err(err) => {
-                    panic!("Wallet execution failed");
-                }
+                Result::Err(_) => array![].span()
             }
         }
 

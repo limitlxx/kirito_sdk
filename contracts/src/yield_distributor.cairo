@@ -1,13 +1,49 @@
+use starknet::ContractAddress;
+
+#[derive(Drop, Serde, starknet::Store)]
+pub struct YieldSourceInfo {
+    pub name: ByteArray,
+    pub token: ContractAddress,
+    pub source_contract: ContractAddress,
+    pub yield_rate: u256, // annual yield rate in basis points
+    pub total_deposited: u256,
+    pub last_update: u64,
+    pub active: bool,
+}
+
+#[derive(Drop, Serde, starknet::Store)]
+pub struct AllocationData {
+    pub rarity_score: u256,
+    pub stake_amount: u256,
+    pub yield_multiplier: u256, // scaled by 10000 (e.g., 15000 = 1.5x)
+    pub custom_factors: u256, // encoded custom factors
+    pub allocated_weight: u256,
+    pub last_claim: u64,
+}
+
+#[derive(Drop, Serde, starknet::Store)]
+pub struct DistributionRound {
+    pub round_id: u32,
+    pub collection: ContractAddress,
+    pub yield_token: ContractAddress,
+    pub total_yield: u256,
+    pub total_weight: u256,
+    pub timestamp: u64,
+    pub nft_count: u32,
+}
+
 #[starknet::contract]
 pub mod YieldDistributor {
+    use super::{YieldSourceInfo, AllocationData, DistributionRound};
     use starknet::{
-        ContractAddress, ClassHash, get_caller_address, get_contract_address,
+        ContractAddress, get_caller_address,
         get_block_timestamp, syscalls::call_contract_syscall
     };
     use starknet::storage::*;
     use core::array::ArrayTrait;
     use core::traits::Into;
     use core::num::traits::Zero;
+    use starknet::storage::{Map, StoragePointerReadAccess, StoragePointerWriteAccess, StorageMapReadAccess, StorageMapWriteAccess};
 
     #[storage]
     struct Storage {
@@ -44,38 +80,6 @@ pub mod YieldDistributor {
         min_distribution_interval: u64,
         max_allocation_weight: u256,
         distribution_fee: u256, // basis points (e.g., 100 = 1%)
-    }
-
-    #[derive(Drop, Serde, starknet::Store)]
-    pub struct YieldSourceInfo {
-        pub name: ByteArray,
-        pub token: ContractAddress,
-        pub source_contract: ContractAddress,
-        pub yield_rate: u256, // annual yield rate in basis points
-        pub total_deposited: u256,
-        pub last_update: u64,
-        pub active: bool,
-    }
-
-    #[derive(Drop, Serde, starknet::Store)]
-    pub struct AllocationData {
-        pub rarity_score: u256,
-        pub stake_amount: u256,
-        pub yield_multiplier: u256, // scaled by 10000 (e.g., 15000 = 1.5x)
-        pub custom_factors: u256, // encoded custom factors
-        pub allocated_weight: u256,
-        pub last_claim: u64,
-    }
-
-    #[derive(Drop, Serde, starknet::Store)]
-    pub struct DistributionRound {
-        pub round_id: u32,
-        pub collection: ContractAddress,
-        pub yield_token: ContractAddress,
-        pub total_yield: u256,
-        pub total_weight: u256,
-        pub timestamp: u64,
-        pub nft_count: u32,
     }
 
     #[event]
@@ -375,16 +379,13 @@ pub mod YieldDistributor {
             
             let nft_owner = match owner_result {
                 Result::Ok(ret_data) => {
-                    if ret_data.len() > 0 {
-                        let owner_felt = *ret_data.at(0);
-                        let owner_address: ContractAddress = owner_felt.try_into().unwrap();
-                        owner_address
-                    } else {
-                        panic!("NFT owner query returned no data");
-                    }
+                    assert(ret_data.len() > 0, 'Query returned no data');
+                    let owner_felt = *ret_data.at(0);
+                    let owner_address: ContractAddress = owner_felt.try_into().unwrap();
+                    owner_address
                 },
-                Result::Err(_) => {
-                    panic!("Failed to verify NFT ownership");
+                Result::Err(_revert_reason) => {
+                    panic!("Failed to verify NFT ownership")
                 }
             };
             
@@ -468,20 +469,36 @@ pub mod YieldDistributor {
             
             total_claimable
         }
-
         fn get_allocation_data(
             self: @ContractState,
             nft_contract: ContractAddress,
             token_id: u256
-        ) -> AllocationData {
-            self.nft_allocations.read((nft_contract, token_id))
+        ) -> (u256, u256, u256, u256, u256, u64) {
+            let data = self.nft_allocations.read((nft_contract, token_id));
+            (
+                data.rarity_score,
+                data.stake_amount,
+                data.yield_multiplier,
+                data.custom_factors,
+                data.allocated_weight,
+                data.last_claim
+            )
         }
 
         fn get_yield_source_info(
             self: @ContractState,
             source_contract: ContractAddress
-        ) -> YieldSourceInfo {
-            self.yield_sources.read(source_contract)
+        ) -> (ByteArray, ContractAddress, ContractAddress, u256, u256, u64, bool) {
+            let info = self.yield_sources.read(source_contract);
+            (
+                info.name,
+                info.token,
+                info.source_contract,
+                info.yield_rate,
+                info.total_deposited,
+                info.last_update,
+                info.active
+            )
         }
 
         fn get_collection_total_weight(
@@ -675,7 +692,7 @@ pub mod YieldDistributor {
                         // Some ERC20s don't return a value, assume success if no revert
                     }
                 },
-                Result::Err(revert_reason) => {
+                Result::Err(_revert_reason) => {
                     // Log detailed error information
                     // In production, would emit error event with revert_reason
                     panic!("Yield transfer failed");
@@ -711,90 +728,4 @@ pub mod YieldDistributor {
             }
         }
     }
-}
-
-// Add the yield distributor interface to interfaces.cairo
-#[starknet::interface]
-pub trait IYieldDistributor<TContractState> {
-    // Yield source management
-    fn register_yield_source(
-        ref self: TContractState,
-        source_contract: ContractAddress,
-        token: ContractAddress,
-        name: ByteArray,
-        yield_rate: u256
-    );
-    
-    // Collection management
-    fn register_nft_collection(
-        ref self: TContractState,
-        nft_contract: ContractAddress,
-        name: ByteArray
-    );
-    
-    // Allocation management
-    fn update_allocation(
-        ref self: TContractState,
-        nft_contract: ContractAddress,
-        token_id: u256,
-        rarity_score: u256,
-        stake_amount: u256,
-        custom_factors: u256
-    );
-    
-    // Yield distribution
-    fn distribute_yield(
-        ref self: TContractState,
-        collection: ContractAddress,
-        yield_token: ContractAddress,
-        total_yield: u256
-    );
-    
-    fn calculate_nft_yield(
-        self: @TContractState,
-        nft_contract: ContractAddress,
-        token_id: u256,
-        yield_token: ContractAddress
-    ) -> u256;
-    
-    fn claim_yield(
-        ref self: TContractState,
-        nft_contract: ContractAddress,
-        token_id: u256,
-        yield_token: ContractAddress,
-        recipient: ContractAddress
-    ) -> u256;
-    
-    // View functions
-    fn get_allocation_data(
-        self: @TContractState,
-        nft_contract: ContractAddress,
-        token_id: u256
-    ) -> (u256, u256, u256, u256, u256, u64); // AllocationData fields
-    
-    fn get_yield_source_info(
-        self: @TContractState,
-        source_contract: ContractAddress
-    ) -> (ByteArray, ContractAddress, ContractAddress, u256, u256, u64, bool); // YieldSourceInfo fields
-    
-    fn get_collection_total_weight(
-        self: @TContractState,
-        collection: ContractAddress
-    ) -> u256;
-    
-    fn get_yield_pool_balance(
-        self: @TContractState,
-        collection: ContractAddress,
-        yield_token: ContractAddress
-    ) -> u256;
-    
-    fn is_collection_registered(
-        self: @TContractState,
-        collection: ContractAddress
-    ) -> bool;
-    
-    fn is_yield_source_active(
-        self: @TContractState,
-        source: ContractAddress
-    ) -> bool;
 }

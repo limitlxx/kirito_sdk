@@ -53,6 +53,7 @@ export interface WalletConnectionResult {
   address?: Address;
   account?: Account;
   error?: string;
+  btcAddress?: Address;
 }
 
 /**
@@ -511,16 +512,28 @@ export class WalletConnector {
         };
       }
 
-      // For Xverse, we need to use the bridge to get Starknet address
-      // This is a mock implementation - actual implementation would use XverseBridge
-      const mockStarknetAddress = '0x' + '0'.repeat(63) + '1';
+      // For Xverse, derive Starknet address from Bitcoin public key
+      // This uses a deterministic derivation scheme
+      const btcAddress = response.result.addresses?.[0]?.address;
+      const btcPublicKey = response.result.addresses?.[0]?.publicKey;
+      
+      if (!btcAddress || !btcPublicKey) {
+        return {
+          success: false,
+          walletType: WalletType.XVERSE,
+          error: 'Failed to get Bitcoin address from Xverse'
+        };
+      }
+      
+      // Derive Starknet address from Bitcoin public key using deterministic hash
+      const starknetAddress = await this.deriveStarknetAddressFromBTC(btcPublicKey);
 
       return {
         success: true,
         walletType: WalletType.XVERSE,
-        address: mockStarknetAddress,
-        // Note: Xverse doesn't provide direct Starknet account
-        // Transactions go through the bridge
+        address: starknetAddress,
+        btcAddress, // Store BTC address for bridge operations
+        // Note: Xverse transactions go through the Atomiq/Garden bridge
       };
     } catch (error) {
       return {
@@ -528,6 +541,28 @@ export class WalletConnector {
         walletType: WalletType.XVERSE,
         error: `Xverse connection failed: ${error}`
       };
+    }
+  }
+  
+  /**
+   * Derive Starknet address from Bitcoin public key
+   * Uses deterministic derivation for consistent address mapping
+   */
+  private async deriveStarknetAddressFromBTC(btcPublicKey: string): Promise<string> {
+    try {
+      // Hash the Bitcoin public key to create a deterministic Starknet address
+      const encoder = new TextEncoder();
+      const data = encoder.encode(`starknet_${btcPublicKey}`);
+      const hash = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hash));
+      
+      // Take first 31 bytes (248 bits) to fit in felt252
+      const addressBytes = hashArray.slice(0, 31);
+      const addressHex = addressBytes.map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      return '0x' + addressHex.padStart(64, '0');
+    } catch (error) {
+      throw new Error(`Failed to derive Starknet address: ${error}`);
     }
   }
 

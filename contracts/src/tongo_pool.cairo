@@ -1,12 +1,155 @@
+use starknet::ContractAddress;
+
+// Garaga Verifier Interface for ZK Proof Verification
+#[starknet::interface]
+pub trait IGaragaVerifier<TContractState> {
+    fn verify_groth16_proof(
+        ref self: TContractState,
+        proof: Span<felt252>,
+        public_inputs: Span<felt252>,
+        vk_hash: felt252
+    ) -> bool;
+}
+
+// Data structures
+#[derive(Drop, Serde, starknet::Store)]
+pub struct TransactionRecord {
+    pub tx_type: u8, // 0: fund, 1: transfer, 2: withdraw
+    pub user_public_key: felt252,
+    pub token: ContractAddress,
+    pub encrypted_amount: felt252,
+    pub recipient: felt252, // For transfers, 0 for fund/withdraw
+    pub nullifier: felt252,
+    pub timestamp: u64,
+}
+
+#[derive(Drop, Serde, starknet::Store)]
+pub struct ViewingKeyData {
+    pub key_hash: felt252,
+    pub expires_at: u64,
+    pub is_active: bool,
+}
+
+#[derive(Drop, Serde, starknet::Store)]
+pub struct StakingRecord {
+    pub encrypted_stake_amount: felt252,
+    pub yield_multiplier: u256,
+    pub last_yield_claim: u64,
+    pub total_yield_claimed: u256,
+}
+
+// Interface definition
+#[starknet::interface]
+pub trait ITongoPool<TContractState> {
+    // Core operations
+    fn fund(
+        ref self: TContractState,
+        token_address: ContractAddress,
+        encrypted_amount: felt252,
+        commitment: felt252,
+        recipient: felt252
+    ) -> felt252;
+    
+    fn transfer(
+        ref self: TContractState,
+        token_address: ContractAddress,
+        encrypted_amount: felt252,
+        recipient: felt252,
+        proof: Span<felt252>,
+        nullifier: felt252
+    ) -> felt252;
+    
+    fn withdraw(
+        ref self: TContractState,
+        token_address: ContractAddress,
+        amount: u256,
+        recipient: ContractAddress,
+        proof: Span<felt252>,
+        nullifier: felt252
+    );
+    
+    // Balance queries
+    fn get_encrypted_balance(
+        self: @TContractState,
+        user_public_key: felt252,
+        token_address: ContractAddress
+    ) -> felt252;
+    
+    fn get_supported_tokens(self: @TContractState) -> Span<ContractAddress>;
+    
+    fn get_transaction_history(
+        self: @TContractState,
+        user_public_key: felt252,
+        token_address: ContractAddress,
+        from_timestamp: u64,
+        to_timestamp: u64
+    ) -> Span<TransactionRecord>;
+    
+    // Viewing keys for auditing
+    fn generate_viewing_key(
+        ref self: TContractState,
+        user_public_key: felt252,
+        token_address: ContractAddress,
+        key_hash: felt252,
+        expires_at: u64
+    );
+    
+    fn inspect_balance_with_key(
+        self: @TContractState,
+        viewing_key: felt252,
+        token_address: ContractAddress,
+        owner_public_key: felt252
+    ) -> (felt252, u256, u256);
+    
+    // Staking integration
+    fn update_staking_record(
+        ref self: TContractState,
+        user_public_key: felt252,
+        token_address: ContractAddress,
+        encrypted_stake_amount: felt252,
+        yield_multiplier: u256
+    );
+    
+    fn get_staking_record(
+        self: @TContractState,
+        user_public_key: felt252
+    ) -> StakingRecord;
+    
+    fn verify_shielded_staking_proof(
+        self: @TContractState,
+        user_public_key: felt252,
+        minimum_stake: u256,
+        proof: Span<felt252>
+    ) -> bool;
+    
+    // Admin functions
+    fn add_supported_token(ref self: TContractState, token: ContractAddress);
+    fn set_yield_distributor(ref self: TContractState, distributor: ContractAddress);
+    fn update_garaga_verifier(ref self: TContractState, new_verifier: ContractAddress);
+    fn update_verification_keys(
+        ref self: TContractState,
+        transfer_vk: felt252,
+        withdraw_vk: felt252
+    );
+    fn get_garaga_verifier(self: @TContractState) -> ContractAddress;
+    fn pause(ref self: TContractState);
+    fn unpause(ref self: TContractState);
+    fn is_paused(self: @TContractState) -> bool;
+    fn get_owner(self: @TContractState) -> ContractAddress;
+}
+
 #[starknet::contract]
 pub mod TongoPool {
+    use super::{TransactionRecord, ViewingKeyData, StakingRecord};
+    use super::{IGaragaVerifierDispatcher, IGaragaVerifierDispatcherTrait};
     use starknet::{
-        ContractAddress, ClassHash, get_caller_address, get_contract_address, get_block_timestamp
+        ContractAddress, get_caller_address, get_block_timestamp
     };
     use core::array::ArrayTrait;
     use core::traits::Into;
-    use core::option::OptionTrait;
-    use core::traits::TryInto;
+    use core::num::traits::Zero;
+    use starknet::storage::{Map, StoragePointerReadAccess, StoragePointerWriteAccess, StorageMapReadAccess, StorageMapWriteAccess};
+
 
     // Storage for Tongo shielded pool
     #[storage]
@@ -32,15 +175,17 @@ pub mod TongoPool {
         transaction_count: u64,
         transactions: Map<u64, TransactionRecord>,
         
-        // User transaction indices
-        user_transaction_indices: Map<felt252, Span<u64>>,
-        
         // Viewing keys for balance inspection
         viewing_keys: Map<(felt252, ContractAddress), ViewingKeyData>,
         
         // Yield integration
         yield_distributor: ContractAddress,
         staking_records: Map<felt252, StakingRecord>,
+        
+        // Garaga ZK proof verification
+        garaga_verifier: ContractAddress,
+        transfer_vk_hash: felt252,
+        withdraw_vk_hash: felt252,
     }
 
     // Events
@@ -120,40 +265,24 @@ pub mod TongoPool {
         timestamp: u64,
     }
 
-    // Data structures
-    #[derive(Drop, Serde, starknet::Store)]
-    struct TransactionRecord {
-        tx_type: u8, // 0: fund, 1: transfer, 2: withdraw
-        user_public_key: felt252,
-        token: ContractAddress,
-        encrypted_amount: felt252,
-        recipient: felt252, // For transfers, 0 for fund/withdraw
-        nullifier: felt252,
-        timestamp: u64,
-    }
-
-    #[derive(Drop, Serde, starknet::Store)]
-    struct ViewingKeyData {
-        key_hash: felt252,
-        expires_at: u64,
-        is_active: bool,
-    }
-
-    #[derive(Drop, Serde, starknet::Store)]
-    struct StakingRecord {
-        encrypted_stake_amount: felt252,
-        yield_multiplier: u256,
-        last_yield_claim: u64,
-        total_yield_claimed: u256,
-    }
-
     // Constructor
     #[constructor]
-    fn constructor(ref self: ContractState, owner: ContractAddress) {
+    fn constructor(
+        ref self: ContractState,
+        owner: ContractAddress,
+        garaga_verifier: ContractAddress,
+        transfer_vk_hash: felt252,
+        withdraw_vk_hash: felt252
+    ) {
         self.owner.write(owner);
         self.paused.write(false);
         self.token_count.write(0);
         self.transaction_count.write(0);
+        
+        // Initialize Garaga verifier for ZK proof verification
+        self.garaga_verifier.write(garaga_verifier);
+        self.transfer_vk_hash.write(transfer_vk_hash);
+        self.withdraw_vk_hash.write(withdraw_vk_hash);
     }
 
     // External functions
@@ -177,7 +306,7 @@ pub mod TongoPool {
             self.commitments.write(commitment, true);
             
             // Update encrypted balance
-            let current_balance = self.encrypted_balances.read((recipient, token_address));
+            let _current_balance = self.encrypted_balances.read((recipient, token_address));
             // In real implementation, would perform homomorphic addition
             self.encrypted_balances.write((recipient, token_address), encrypted_amount);
             
@@ -233,7 +362,7 @@ pub mod TongoPool {
             let sender_key = self._address_to_felt(sender);
             
             // Update recipient balance
-            let current_recipient_balance = self.encrypted_balances.read((recipient, token_address));
+            let _current_recipient_balance = self.encrypted_balances.read((recipient, token_address));
             self.encrypted_balances.write((recipient, token_address), encrypted_amount);
             
             // Record transaction
@@ -288,7 +417,7 @@ pub mod TongoPool {
             let sender_key = self._address_to_felt(sender);
             
             // Update encrypted balance (subtract amount in real implementation)
-            let current_balance = self.encrypted_balances.read((sender_key, token_address));
+            let _current_balance = self.encrypted_balances.read((sender_key, token_address));
             // Simplified: just clear balance for demo
             self.encrypted_balances.write((sender_key, token_address), 0);
             
@@ -377,7 +506,7 @@ pub mod TongoPool {
             key_hash: felt252,
             expires_at: u64
         ) {
-            let caller = get_caller_address();
+            let _caller = get_caller_address();
             // Verify caller owns the public key (simplified)
             
             let viewing_key_data = ViewingKeyData {
@@ -486,6 +615,25 @@ pub mod TongoPool {
             self.yield_distributor.write(distributor);
         }
 
+        fn update_garaga_verifier(ref self: ContractState, new_verifier: ContractAddress) {
+            self._assert_owner();
+            self.garaga_verifier.write(new_verifier);
+        }
+
+        fn update_verification_keys(
+            ref self: ContractState,
+            transfer_vk: felt252,
+            withdraw_vk: felt252
+        ) {
+            self._assert_owner();
+            self.transfer_vk_hash.write(transfer_vk);
+            self.withdraw_vk_hash.write(withdraw_vk);
+        }
+
+        fn get_garaga_verifier(self: @ContractState) -> ContractAddress {
+            self.garaga_verifier.read()
+        }
+
         fn pause(ref self: ContractState) {
             self._assert_owner();
             self.paused.write(true);
@@ -526,42 +674,85 @@ pub mod TongoPool {
             nullifier: felt252,
             encrypted_amount: felt252
         ) -> bool {
-            // Real zero-knowledge proof verification
-            // This should integrate with Garaga verifier for Groth16 proofs
+            // PRODUCTION ZERO-KNOWLEDGE PROOF VERIFICATION
+            // Integrates with Garaga verifier for Groth16 proof verification
             
-            // Basic validation
+            // 1. Basic validation
             if proof.len() == 0 || nullifier == 0 || encrypted_amount == 0 {
                 return false;
             }
             
-            // In production, this would:
-            // 1. Parse the proof into Groth16 format (A, B, C points)
-            // 2. Extract public inputs (nullifier, encrypted_amount)
-            // 3. Call Garaga verifier contract to verify the proof
-            // 4. Return verification result
-            
-            // Proof structure for Groth16:
-            // - proof[0..7]: Point A (2 field elements for x, y)
-            // - proof[8..23]: Point B (4 field elements for x0, x1, y0, y1)
-            // - proof[24..31]: Point C (2 field elements for x, y)
-            // - proof[32..]: Public inputs
-            
-            if proof.len() < 32 {
+            // 2. Validate Groth16 proof structure
+            // Groth16 proofs consist of:
+            // - Point A: 2 field elements (x, y coordinates on G1)
+            // - Point B: 4 field elements (x0, x1, y0, y1 coordinates on G2)
+            // - Point C: 2 field elements (x, y coordinates on G1)
+            // Total: 8 field elements minimum
+            if proof.len() < 8 {
                 return false; // Invalid proof structure
             }
             
-            // TODO: Integrate with Garaga verifier
-            // For now, perform structural validation
-            // let verifier_address = self.garaga_verifier.read();
-            // let verification_result = call_garaga_verifier(
-            //     verifier_address,
-            //     proof,
-            //     array![nullifier, encrypted_amount].span()
-            // );
+            // 3. Get Garaga verifier contract address
+            let garaga_verifier = self.garaga_verifier.read();
             
-            // Placeholder: Accept proofs with correct structure
-            // MUST be replaced with actual Garaga verification
-            true
+            // 4. Check if Garaga verifier is configured
+            if garaga_verifier.is_zero() {
+                // No verifier configured - fail safe
+                return false;
+            }
+            
+            // 5. Build public inputs for the ZK circuit
+            // Public inputs for shielded transfer proof:
+            // - nullifier: prevents double-spending
+            // - encrypted_amount: homomorphically encrypted amount
+            // - token_address: which token is being transferred
+            let mut public_inputs = array![];
+            public_inputs.append(nullifier);
+            public_inputs.append(encrypted_amount);
+            
+            // 6. Get verification key hash for this circuit
+            let vk_hash = self.transfer_vk_hash.read();
+            
+            if vk_hash == 0 {
+                // No verification key configured
+                return false;
+            }
+            
+            // 7. Call Garaga verifier to verify the Groth16 proof
+            let is_valid = self._call_garaga_verifier(
+                proof,
+                public_inputs.span(),
+                vk_hash
+            );
+            
+            is_valid
+        }
+
+        /// Call Garaga verifier contract to verify Groth16 proof
+        /// 
+        /// This performs external call to Garaga verifier for cryptographic verification
+        fn _call_garaga_verifier(
+            self: @ContractState,
+            proof: Span<felt252>,
+            public_inputs: Span<felt252>,
+            vk_hash: felt252
+        ) -> bool {
+            let garaga_verifier = self.garaga_verifier.read();
+            
+            // Create dispatcher to call Garaga verifier
+            let verifier = IGaragaVerifierDispatcher { 
+                contract_address: garaga_verifier 
+            };
+            
+            // Call verify_groth16_proof on Garaga verifier
+            // This performs full cryptographic verification of the ZK proof
+            let is_valid = verifier.verify_groth16_proof(
+                proof,
+                public_inputs,
+                vk_hash
+            );
+            
+            is_valid
         }
 
         fn _verify_withdrawal_proof(
@@ -570,38 +761,50 @@ pub mod TongoPool {
             nullifier: felt252,
             amount: u256
         ) -> bool {
-            // Real zero-knowledge proof verification for withdrawals
+            // PRODUCTION ZERO-KNOWLEDGE PROOF VERIFICATION FOR WITHDRAWALS
             
-            // Basic validation
+            // 1. Basic validation
             if proof.len() == 0 || nullifier == 0 || amount == 0 {
                 return false;
             }
             
-            // Withdrawal proofs verify:
-            // 1. User has sufficient encrypted balance
-            // 2. Nullifier is correctly derived
-            // 3. Amount matches the encrypted balance
-            
-            if proof.len() < 32 {
-                return false; // Invalid proof structure
+            // 2. Validate Groth16 proof structure
+            if proof.len() < 8 {
+                return false;
             }
             
-            // TODO: Integrate with Garaga verifier
-            // let verifier_address = self.garaga_verifier.read();
-            // let public_inputs = array![
-            //     nullifier,
-            //     amount.low.into(),
-            //     amount.high.into()
-            // ];
-            // let verification_result = call_garaga_verifier(
-            //     verifier_address,
-            //     proof,
-            //     public_inputs.span()
-            // );
+            // 3. Get Garaga verifier contract address
+            let garaga_verifier = self.garaga_verifier.read();
             
-            // Placeholder: Accept proofs with correct structure
-            // MUST be replaced with actual Garaga verification
-            true
+            if garaga_verifier.is_zero() {
+                return false;
+            }
+            
+            // 4. Build public inputs for withdrawal proof
+            // Public inputs verify:
+            // - User has sufficient encrypted balance
+            // - Nullifier is correctly derived
+            // - Amount matches the encrypted balance
+            let mut public_inputs = array![];
+            public_inputs.append(nullifier);
+            public_inputs.append(amount.low.into());
+            public_inputs.append(amount.high.into());
+            
+            // 5. Get verification key hash for withdrawal circuit
+            let vk_hash = self.withdraw_vk_hash.read();
+            
+            if vk_hash == 0 {
+                return false;
+            }
+            
+            // 6. Call Garaga verifier
+            let is_valid = self._call_garaga_verifier(
+                proof,
+                public_inputs.span(),
+                vk_hash
+            );
+            
+            is_valid
         }
 
         fn _verify_staking_proof(
@@ -649,97 +852,4 @@ pub mod TongoPool {
             addr.into()
         }
     }
-}
-
-// Interface definition
-#[starknet::interface]
-trait ITongoPool<TContractState> {
-    // Core operations
-    fn fund(
-        ref self: TContractState,
-        token_address: starknet::ContractAddress,
-        encrypted_amount: felt252,
-        commitment: felt252,
-        recipient: felt252
-    ) -> felt252;
-    
-    fn transfer(
-        ref self: TContractState,
-        token_address: starknet::ContractAddress,
-        encrypted_amount: felt252,
-        recipient: felt252,
-        proof: Span<felt252>,
-        nullifier: felt252
-    ) -> felt252;
-    
-    fn withdraw(
-        ref self: TContractState,
-        token_address: starknet::ContractAddress,
-        amount: u256,
-        recipient: starknet::ContractAddress,
-        proof: Span<felt252>,
-        nullifier: felt252
-    );
-    
-    // Balance queries
-    fn get_encrypted_balance(
-        self: @TContractState,
-        user_public_key: felt252,
-        token_address: starknet::ContractAddress
-    ) -> felt252;
-    
-    fn get_supported_tokens(self: @TContractState) -> Span<starknet::ContractAddress>;
-    
-    fn get_transaction_history(
-        self: @TContractState,
-        user_public_key: felt252,
-        token_address: starknet::ContractAddress,
-        from_timestamp: u64,
-        to_timestamp: u64
-    ) -> Span<TongoPool::TransactionRecord>;
-    
-    // Viewing keys for auditing
-    fn generate_viewing_key(
-        ref self: TContractState,
-        user_public_key: felt252,
-        token_address: starknet::ContractAddress,
-        key_hash: felt252,
-        expires_at: u64
-    );
-    
-    fn inspect_balance_with_key(
-        self: @TContractState,
-        viewing_key: felt252,
-        token_address: starknet::ContractAddress,
-        owner_public_key: felt252
-    ) -> (felt252, u256, u256);
-    
-    // Staking integration
-    fn update_staking_record(
-        ref self: TContractState,
-        user_public_key: felt252,
-        token_address: starknet::ContractAddress,
-        encrypted_stake_amount: felt252,
-        yield_multiplier: u256
-    );
-    
-    fn get_staking_record(
-        self: @TContractState,
-        user_public_key: felt252
-    ) -> TongoPool::StakingRecord;
-    
-    fn verify_shielded_staking_proof(
-        self: @TContractState,
-        user_public_key: felt252,
-        minimum_stake: u256,
-        proof: Span<felt252>
-    ) -> bool;
-    
-    // Admin functions
-    fn add_supported_token(ref self: TContractState, token: starknet::ContractAddress);
-    fn set_yield_distributor(ref self: TContractState, distributor: starknet::ContractAddress);
-    fn pause(ref self: TContractState);
-    fn unpause(ref self: TContractState);
-    fn is_paused(self: @TContractState) -> bool;
-    fn get_owner(self: @TContractState) -> starknet::ContractAddress;
 }

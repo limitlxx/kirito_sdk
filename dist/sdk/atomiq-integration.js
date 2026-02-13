@@ -88,7 +88,12 @@ class AtomiqIntegration {
         }
         try {
             // Dynamic import to handle optional dependency
-            const { Factory, BitcoinNetwork } = await Promise.resolve().then(() => __importStar(require('@atomiqlabs/sdk')));
+            const AtomiqSDK = await Promise.resolve().then(() => __importStar(require('@atomiqlabs/sdk')));
+            const Factory = AtomiqSDK.Factory || AtomiqSDK.default?.Factory;
+            const BitcoinNetwork = AtomiqSDK.BitcoinNetwork || AtomiqSDK.default?.BitcoinNetwork;
+            if (!Factory) {
+                throw new Error('Atomiq Factory not found in SDK');
+            }
             // For Node.js environment, use SQLite storage
             let swapStorage, chainStorageCtor;
             try {
@@ -111,6 +116,9 @@ class AtomiqIntegration {
                 ...(swapStorage && { swapStorage }),
                 ...(chainStorageCtor && { chainStorageCtor })
             });
+            if (!this.swapper) {
+                throw new Error('Failed to create Atomiq swapper');
+            }
             await this.swapper.init();
             this.initialized = true;
             console.log(`Atomiq swapper initialized for ${this.network}`);
@@ -135,7 +143,12 @@ class AtomiqIntegration {
     async swapBTCToStarknet(amount, destinationToken, destinationAddress, btcWallet, exactIn = true) {
         this.ensureInitialized();
         try {
-            const { Tokens, SwapAmountType } = await Promise.resolve().then(() => __importStar(require('@atomiqlabs/sdk')));
+            const AtomiqSDK = await Promise.resolve().then(() => __importStar(require('@atomiqlabs/sdk')));
+            const Tokens = AtomiqSDK.Tokens || AtomiqSDK.default?.Tokens;
+            const SwapAmountType = AtomiqSDK.SwapAmountType || AtomiqSDK.default?.SwapAmountType;
+            if (!Tokens || !SwapAmountType) {
+                throw new Error('Atomiq Tokens or SwapAmountType not found in SDK');
+            }
             // Create swap
             const swap = await this.swapper.swap(Tokens.BITCOIN.BTC, this.getStarknetToken(destinationToken), amount, exactIn ? SwapAmountType.EXACT_IN : SwapAmountType.EXACT_OUT, undefined, // BTC source address not needed
             destinationAddress);
@@ -198,7 +211,12 @@ class AtomiqIntegration {
     async swapStarknetToBTC(amount, sourceToken, btcAddress, starknetWallet, exactIn = true) {
         this.ensureInitialized();
         try {
-            const { Tokens, SwapAmountType } = await Promise.resolve().then(() => __importStar(require('@atomiqlabs/sdk')));
+            const AtomiqSDK = await Promise.resolve().then(() => __importStar(require('@atomiqlabs/sdk')));
+            const Tokens = AtomiqSDK.Tokens || AtomiqSDK.default?.Tokens;
+            const SwapAmountType = AtomiqSDK.SwapAmountType || AtomiqSDK.default?.SwapAmountType;
+            if (!Tokens || !SwapAmountType) {
+                throw new Error('Atomiq Tokens or SwapAmountType not found in SDK');
+            }
             // Create swap
             const swap = await this.swapper.swap(this.getStarknetToken(sourceToken), Tokens.BITCOIN.BTC, amount, exactIn ? SwapAmountType.EXACT_IN : SwapAmountType.EXACT_OUT, starknetWallet.address, btcAddress);
             console.log(`Created Starknet → BTC swap: ${swap.getId()}`);
@@ -244,7 +262,11 @@ class AtomiqIntegration {
     async getSwapLimits(fromToken, toToken) {
         this.ensureInitialized();
         try {
-            const { Tokens } = await Promise.resolve().then(() => __importStar(require('@atomiqlabs/sdk')));
+            const AtomiqSDK = await Promise.resolve().then(() => __importStar(require('@atomiqlabs/sdk')));
+            const Tokens = AtomiqSDK.Tokens || AtomiqSDK.default?.Tokens;
+            if (!Tokens) {
+                throw new Error('Atomiq Tokens not found in SDK');
+            }
             const from = fromToken === 'BTC' ? Tokens.BITCOIN.BTC : this.getStarknetToken(fromToken);
             const to = toToken === 'BTC' ? Tokens.BITCOIN.BTC : this.getStarknetToken(toToken);
             return this.swapper.getSwapLimits(from, to);

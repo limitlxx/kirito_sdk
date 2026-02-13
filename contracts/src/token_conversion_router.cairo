@@ -1,7 +1,4 @@
-use starknet::{ContractAddress, get_caller_address, get_contract_address};
-use openzeppelin::access::ownable::OwnableComponent;
-use openzeppelin::upgrades::UpgradeableComponent;
-use openzeppelin::security::ReentrancyGuardComponent;
+use starknet::ContractAddress;
 
 #[starknet::interface]
 pub trait ITokenConversionRouter<TContractState> {
@@ -65,7 +62,7 @@ pub trait ITokenConversionRouter<TContractState> {
     fn get_max_slippage(self: @TContractState) -> u256;
 }
 
-#[derive(Drop, Serde, starknet::Store)]
+#[derive(Drop, Serde)]
 pub struct ConversionRoute {
     pub from_token: ContractAddress,
     pub to_token: ContractAddress,
@@ -74,7 +71,6 @@ pub struct ConversionRoute {
     pub fee_amount: u256,
     pub price_impact: u256,
     pub is_multi_hop: bool,
-    pub hops: Array<ContractAddress>
 }
 
 #[derive(Drop, Serde, starknet::Store)]
@@ -90,7 +86,6 @@ pub struct BridgeInfo {
 pub struct ConversionPair {
     pub from_token: ContractAddress,
     pub to_token: ContractAddress,
-    pub bridges: Array<ContractAddress>,
     pub is_supported: bool
 }
 
@@ -104,21 +99,19 @@ pub mod TokenConversionRouter {
     use openzeppelin::upgrades::UpgradeableComponent;
     use openzeppelin::security::ReentrancyGuardComponent;
     use openzeppelin::token::erc20::interface::{IERC20Dispatcher, IERC20DispatcherTrait};
+    use starknet::storage::{Map, StoragePointerReadAccess, StoragePointerWriteAccess, StorageMapReadAccess, StorageMapWriteAccess};
+
 
     component!(path: OwnableComponent, storage: ownable, event: OwnableEvent);
     component!(path: UpgradeableComponent, storage: upgradeable, event: UpgradeableEvent);
     component!(path: ReentrancyGuardComponent, storage: reentrancy_guard, event: ReentrancyGuardEvent);
 
     #[abi(embed_v0)]
-    impl OwnableImpl = OwnableComponent::OwnableImpl<ContractState>;
+    impl OwnableImpl = OwnableComponent::OwnableMixinImpl<ContractState>;
     impl OwnableInternalImpl = OwnableComponent::InternalImpl<ContractState>;
 
-    #[abi(embed_v0)]
-    impl UpgradeableImpl = UpgradeableComponent::UpgradeableImpl<ContractState>;
     impl UpgradeableInternalImpl = UpgradeableComponent::InternalImpl<ContractState>;
 
-    #[abi(embed_v0)]
-    impl ReentrancyGuardImpl = ReentrancyGuardComponent::ReentrancyGuardImpl<ContractState>;
     impl ReentrancyGuardInternalImpl = ReentrancyGuardComponent::InternalImpl<ContractState>;
 
     #[storage]
@@ -132,11 +125,11 @@ pub mod TokenConversionRouter {
         reentrancy_guard: ReentrancyGuardComponent::Storage,
         
         // Conversion routes
-        conversion_pairs: LegacyMap<(ContractAddress, ContractAddress), ConversionPair>,
-        bridge_info: LegacyMap<ContractAddress, BridgeInfo>,
+        bridge_info: Map<ContractAddress, BridgeInfo>,
+        pair_bridges: Map<(ContractAddress, ContractAddress), ContractAddress>, // Simplified: one bridge per pair
         
         // Route optimization
-        supported_tokens: LegacyMap<ContractAddress, bool>,
+        supported_tokens: Map<ContractAddress, bool>,
         token_count: u32,
         
         // Slippage protection
@@ -236,25 +229,15 @@ pub mod TokenConversionRouter {
             
             // Update conversion pair
             let pair_key = (from_token, to_token);
-            let mut pair = self.conversion_pairs.read(pair_key);
+            let _pair = ConversionPair {
+                from_token,
+                to_token,
+                is_supported: true
+            };
             
-            if !pair.is_supported {
-                pair = ConversionPair {
-                    from_token,
-                    to_token,
-                    bridges: array![bridge_address],
-                    is_supported: true
-                };
-            } else {
-                // Add bridge to existing pair (simplified)
-                pair.bridges = array![bridge_address]; // In real implementation, append to existing
-            }
-            
-            self.conversion_pairs.write(pair_key, pair);
-            
-            // Mark tokens as supported
             self.supported_tokens.write(from_token, true);
             self.supported_tokens.write(to_token, true);
+            self.pair_bridges.write(pair_key, bridge_address);
             
             self.emit(ConversionRouteAdded {
                 from_token,
@@ -290,12 +273,11 @@ pub mod TokenConversionRouter {
             to_token: ContractAddress,
             amount: u256
         ) -> ConversionRoute {
-            let pair = self.conversion_pairs.read((from_token, to_token));
-            assert(pair.is_supported, 'Conversion pair not supported');
+            assert(self.supported_tokens.read(from_token), 'From token not supported');
+            assert(self.supported_tokens.read(to_token), 'To token not supported');
             
-            // Simplified: return first available bridge
-            // In real implementation, compare rates across all bridges
-            let bridge_address = *pair.bridges.at(0);
+            // Get the bridge for this pair
+            let bridge_address = self.pair_bridges.read((from_token, to_token));
             let bridge_info = self.bridge_info.read(bridge_address);
             
             let fee_amount = (amount * bridge_info.fee_rate) / 10000;
@@ -309,7 +291,6 @@ pub mod TokenConversionRouter {
                 fee_amount,
                 price_impact: 0, // Simplified
                 is_multi_hop: false,
-                hops: array![]
             }
         }
 
@@ -402,7 +383,7 @@ pub mod TokenConversionRouter {
             assert(current_amount >= min_output, 'Multi-hop slippage too high');
             
             self.emit(MultiHopConversionExecuted {
-                route,
+                route: route.clone(),
                 amount_in: amount,
                 amount_out: current_amount,
                 recipient,
@@ -466,8 +447,8 @@ pub mod TokenConversionRouter {
         }
 
         fn get_bridge_count(self: @ContractState, from_token: ContractAddress, to_token: ContractAddress) -> u32 {
-            let pair = self.conversion_pairs.read((from_token, to_token));
-            pair.bridges.len()
+            let is_supported = self.supported_tokens.read(from_token) && self.supported_tokens.read(to_token);
+            if is_supported { 1 } else { 0 }
         }
     }
 }

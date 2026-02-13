@@ -8,12 +8,12 @@ export * from './auction';
 export * from './layerswap-bridge';
 export * from './garden-finance-bridge';
 export * from './xverse-bridge';
-export * from './yield-source-selector';
 export * from './token-conversion-aggregator';
 export * from './wallet-allocation';
-export * from './defi-yield-aggregator';
 export * from './comprehensive-wallet';
 export * from './vesu-integration';
 export * from './ekubo-integration';
 export * from './wallet-connector';
+export { YieldSourceSelector, YieldSourceType, YieldSourceConfig, ConvertibleToken, YieldAllocation, ConversionPreferences } from './yield-source-selector';
+export { DeFiYieldAggregator, createDeFiYieldAggregator, DeFiProtocol as DeFiProtocolEnum, ProtocolConfig, AggregatedDeFiYield, ProtocolYieldBreakdown, ProtocolHealth, YieldOptimization } from './defi-yield-aggregator';
 //# sourceMappingURL=index.d.ts.map

@@ -1,12 +1,12 @@
 /**
  * Garaga Integration for On-Chain ZK Proof Verification
- * Handles Garaga SDK integration for Starknet proof verification
+ * Production implementation for Starknet proof verification using Garaga
  * Based on official Garaga documentation: https://garaga.gitbook.io/garaga
  *
- * Real implementation would use:
- * npm install garaga@1.0.1
- * pip install garaga==1.0.1
- * garaga gen --system groth16 --vk verification_key.json
+ * Prerequisites:
+ * - npm install garaga@latest
+ * - Compiled Noir circuits with verification keys
+ * - Deployed Garaga verifier contract on Starknet
  */
 import { Account } from 'starknet';
 import { ZKProof, TokenId, BoxId, KiritoSDKConfig } from '../types';
@@ -19,50 +19,88 @@ export interface GaragaVerifierContract {
     verify_groth16_proof_bn254(proof: string[], public_inputs: string[], vk_hash: string): Promise<boolean>;
     verify_ultra_honk_proof(proof: string[], public_inputs: string[], vk_hash: string): Promise<boolean>;
 }
+export interface VerificationKeyConfig {
+    fullRevealVkPath: string;
+    bluffingRevealVkPath: string;
+    verifierContractAddress?: string;
+}
 /**
  * Garaga SDK Integration for Mystery Box Verification
- * Handles on-chain proof verification using Garaga verifier contracts
+ * Production-ready on-chain proof verification using Garaga verifier contracts
  */
 export declare class GaragaMysteryBoxVerifier {
     private config;
     private provider;
     private verifierContract?;
     private account?;
-    private fullRevealVkHash;
-    private bluffingRevealVkHash;
-    constructor(config: KiritoSDKConfig);
+    private fullRevealVkHashPromise;
+    private bluffingRevealVkHashPromise;
+    private vkConfig;
+    constructor(config: KiritoSDKConfig, vkConfig: VerificationKeyConfig);
     /**
-     * Initialize Garaga verifier contract
+     * Load verification key hash from compiled circuit
      */
-    initialize(account: Account, verifierContractAddress: string): Promise<void>;
+    private loadVerificationKeyHash;
+    /**
+     * Compute verification key hash from VK data
+     */
+    private computeVkHash;
+    /**
+     * Initialize Garaga verifier contract with real ABI
+     */
+    initialize(account: Account, verifierContractAddress?: string): Promise<void>;
+    /**
+     * Load verifier contract ABI from compiled contract
+     */
+    private loadVerifierAbi;
+    /**
+     * Verify contract connection is working
+     */
+    private verifyContractConnection;
     /**
      * Verify mystery box reveal proof on-chain using Garaga
+     * Production implementation with proper error handling
      */
     verifyRevealProofOnChain(boxId: BoxId, tokenId: TokenId, proof: ZKProof, revealType?: 'full' | 'bluffing'): Promise<boolean>;
     /**
+     * Parse verification result from contract call
+     */
+    private parseVerificationResult;
+    /**
      * Submit mystery box reveal transaction on-chain
+     * Production implementation with proper transaction handling
      */
     submitRevealTransaction(boxId: BoxId, proof: ZKProof, nullifier: string, revealType?: 'full' | 'bluffing'): Promise<string>;
     /**
      * Generate Garaga verifier contract using Garaga CLI
-     * Based on: https://garaga.gitbook.io/garaga
+     * Production implementation that actually executes Garaga commands
      *
-     * Real implementation steps:
+     * Prerequisites:
+     * - Garaga CLI installed: pip install garaga
+     * - Compiled Noir circuit with verification key
+     *
+     * Steps:
      * 1. garaga gen --system groth16 --vk verification_key.json --output verifier.cairo
-     * 2. garaga declare --contract verifier.cairo
-     * 3. garaga deploy --class-hash <hash> --constructor-args <args>
+     * 2. Compile with scarb build
+     * 3. Deploy using starkli or scarb
      */
-    generateVerifierContract(circuitPath: string, outputPath: string): Promise<void>;
+    generateVerifierContract(vkPath: string, outputPath: string, system?: 'groth16' | 'ultra_honk'): Promise<void>;
     /**
      * Deploy Garaga verifier contract to Starknet
+     * Production implementation using Starknet.js
      */
     deployVerifierContract(compiledContractPath: string, constructorCalldata: string[]): Promise<string>;
     /**
+     * Save deployment information for future reference
+     */
+    private saveDeploymentInfo;
+    /**
      * Get verification key hash for proof type
      */
-    getVerificationKeyHash(proofType: 'full' | 'bluffing'): string;
+    getVerificationKeyHash(proofType: 'full' | 'bluffing'): Promise<string>;
     /**
      * Update verification key hashes (for contract upgrades)
+     * Production implementation with proper transaction handling
      */
     updateVerificationKeys(fullRevealVk: string, bluffingRevealVk: string): Promise<void>;
     /**
@@ -81,42 +119,45 @@ export declare class GaragaMysteryBoxVerifier {
      * Convert string to felt
      */
     private stringToFelt;
-    /**
-     * Generate mock verifier contract based on Garaga architecture
-     * Real contract would be generated by: garaga gen --system groth16 --vk vk.json
-     */
-    private generateMockVerifierContract;
 }
 /**
  * Garaga CLI Integration Helper
- * Provides utilities for working with Garaga command-line tools
+ * Production utilities for working with Garaga command-line tools
  * Based on official Garaga CLI: https://garaga.gitbook.io/garaga
  */
 export declare class GaragaCLIHelper {
     /**
      * Generate verification key from Noir circuit
-     * Command: nargo compile && garaga gen --system groth16 --circuit target/circuit.json
+     * Requires: nargo compile && garaga gen
      */
-    static generateVerificationKey(circuitPath: string): Promise<string>;
+    static generateVerificationKey(circuitPath: string, outputPath: string): Promise<string>;
     /**
      * Generate verifier contract from verification key
      * Command: garaga gen --system groth16 --vk verification_key.json --output verifier.cairo
      */
     static generateVerifierContract(vkPath: string, outputPath: string): Promise<void>;
     /**
-     * Declare contract on Starknet
-     * Command: garaga declare --contract verifier.cairo
+     * Declare contract on Starknet using starkli
+     * Requires: scarb build && starkli declare
      */
-    static declareContract(contractPath: string): Promise<string>;
+    static declareContract(contractPath: string, accountPath: string, rpcUrl: string): Promise<string>;
     /**
-     * Deploy contract instance
-     * Command: garaga deploy --class-hash <hash> --constructor-args <args>
+     * Deploy contract instance using starkli
+     * Command: starkli deploy <class-hash> <constructor-args>
      */
-    static deployContract(classHash: string, constructorArgs: string[]): Promise<string>;
+    static deployContract(classHash: string, constructorArgs: string[], accountPath: string, rpcUrl: string): Promise<string>;
     /**
-     * Verify proof on-chain
-     * Command: garaga verify-onchain --address <addr> --vk vk.json --proof proof.json --public-inputs inputs.json
+     * Verify proof on-chain using Garaga verifier
+     * Requires deployed verifier contract
      */
-    static verifyOnChain(contractAddress: string, vkPath: string, proofPath: string, publicInputsPath: string): Promise<boolean>;
+    static verifyOnChain(contractAddress: string, vkPath: string, proofPath: string, publicInputsPath: string, accountPath: string, rpcUrl: string): Promise<boolean>;
+    /**
+     * Check if Garaga CLI is installed
+     */
+    static checkGaragaInstallation(): Promise<boolean>;
+    /**
+     * Install Garaga CLI
+     */
+    static installGaraga(): Promise<void>;
 }
 //# sourceMappingURL=garaga-integration.d.ts.map
