@@ -507,8 +507,8 @@ async initialize(account: Account, verifierContractAddress?: string): Promise<vo
       await this.provider.waitForTransaction(response.transaction_hash);
       
       // Update local cache
-      this.fullRevealVkHashPromise = fullRevealVk;
-      this.bluffingRevealVkHashPromise = bluffingRevealVk;
+      this.fullRevealVkHashPromise = Promise.resolve(fullRevealVk);
+      this.bluffingRevealVkHashPromise = Promise.resolve(bluffingRevealVk);
       
       console.log('✓ Verification keys updated successfully');
     } catch (error) {
